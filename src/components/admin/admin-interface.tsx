@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { SurgeryNote, RubricDomain } from '@/lib/types'
 import { Plus, Edit, Trash2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import BulkUploadModal from './bulk-upload/bulk-upload-modal'
 
 interface AdminInterfaceProps {
   user: any
@@ -47,6 +48,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
     surgeon: ''
   })
 
+  
   const [domainForm, setDomainForm] = useState({
     name: '',
     description: '',
@@ -464,17 +466,20 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">Surgery Notes</h2>
-              <button
-                onClick={() => {
-                  setShowNoteForm(true)
-                  setEditingNote(null)
-                  setNoteForm({ title: '', content: '', patient_info: '', surgery_date: '', surgeon: '' })
-                }}
-                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center space-x-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Add Note</span>
-              </button>
+              <div className="flex space-x-3">
+                <BulkUploadModal onUploadComplete={async () => await loadData()} />
+                <button
+                  onClick={() => {
+                    setShowNoteForm(true)
+                    setEditingNote(null)
+                    setNoteForm({ title: '', content: '', patient_info: '', surgery_date: '', surgeon: '' })
+                  }}
+                  className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center space-x-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Note</span>
+                </button>
+              </div>
             </div>
 
             {showNoteForm && (
