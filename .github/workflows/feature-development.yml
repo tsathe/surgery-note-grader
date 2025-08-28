@@ -1,0 +1,66 @@
+name: Feature Development Workflow
+
+on:
+  push:
+    branches: [ feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run linting
+      run: npm run lint
+    
+    - name: Run type checking
+      run: npm run type-check
+    
+    - name: Run tests
+      run: npm run test
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+    
+    - name: Build application
+      run: npm run build
+
+  update-progress:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Update development progress
+      run: |
+        echo "Feature branch ${{ github.ref_name }} tests passed" >> DEVELOPMENT_LOG.md
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add DEVELOPMENT_LOG.md
+        git commit -m "Auto-update: Feature tests passed for ${{ github.ref_name }}" || exit 0
+        git push
