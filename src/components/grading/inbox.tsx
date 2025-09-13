@@ -47,7 +47,7 @@ export default function Inbox({ user, onOpen }: InboxProps) {
       // Example: join of assignments/grades could be used. For now synthesize from surgery_notes + grades presence
       const { data: notes, error } = await supabase
         .from("surgery_notes")
-        .select("id,title,surgery_date,surgeon")
+        .select("id,description,note_text")
         .order("created_at", { ascending: false })
 
       const { data: userGrades } = await supabase
@@ -69,11 +69,11 @@ export default function Inbox({ user, onOpen }: InboxProps) {
       // Temporary: first 3 are phase 1, rest phase 2 (replace with real assignment table later)
       const mapped: Assignment[] = noteList.map((n: any, idx: number) => ({
         id: n.id,
-        title: n.title,
+        title: n.description || `Note ${n.id.substring(0, 8)}`,
         phase: (idx < 5 ? 1 : 2) as 1 | 2,
         status: gradedIds.has(n.id) ? "graded" : "pending",
-        surgery_date: (n as any).surgery_date ?? null,
-        surgeon: (n as any).surgeon ?? null,
+        surgery_date: null,
+        surgeon: null,
       }))
 
       setAssignments(mapped)
