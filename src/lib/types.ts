@@ -1,10 +1,6 @@
 export interface SurgeryNote {
   id: string;
-  title: string;
-  content: string;
-  patient_info?: string;
-  surgery_date?: string;
-  surgeon?: string;
+  note_text: string;
   created_at: string;
   updated_at: string;
 }

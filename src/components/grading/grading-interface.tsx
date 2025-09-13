@@ -388,7 +388,7 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
                 <div className="mb-4 flex items-center justify-between">
                   <div className="space-y-1">
                     <h2 className="text-lg font-semibold text-foreground/90">
-                      {selectedNote.title || 'Surgery Note'}
+                      Surgery Note - {selectedNote.id.substring(0, 8)}...
                     </h2>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>Progress: {scoredCount}/{totalDomains}</span>
@@ -409,7 +409,7 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
                 <ScrollArea className="flex-1 rounded-lg bg-muted/20 border border-border/30">
                   <div className="p-6">
                     <pre className="whitespace-pre-wrap text-[15px] leading-7 font-mono text-foreground/90 selection:bg-primary/20">
-                      {selectedNote.content}
+                      {selectedNote.note_text}
                     </pre>
                   </div>
                 </ScrollArea>

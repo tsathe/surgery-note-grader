@@ -43,11 +43,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
 
   // Form states
   const [noteForm, setNoteForm] = useState({
-    title: '',
-    content: '',
-    patient_info: '',
-    surgery_date: '',
-    surgeon: ''
+    note_text: ''
   })
 
   const [domainForm, setDomainForm] = useState({
@@ -102,7 +98,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       
       setShowNoteForm(false)
       setEditingNote(null)
-      setNoteForm({ title: '', content: '', patient_info: '', surgery_date: '', surgeon: '' })
+      setNoteForm({ note_text: '' })
       await loadData()
     } catch (error) {
       console.error('Error saving note:', error)
@@ -475,7 +471,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                   onClick={() => {
                     setShowNoteForm(true)
                     setEditingNote(null)
-                    setNoteForm({ title: '', content: '', patient_info: '', surgery_date: '', surgeon: '' })
+                    setNoteForm({ note_text: '' })
                   }}
                   className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center space-x-2"
                 >
@@ -492,53 +488,15 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                 </h3>
                 <form onSubmit={handleNoteSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium">Title</label>
-                    <input
-                      type="text"
-                      value={noteForm.title}
-                      onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-                      className="mt-1 block w-full border rounded-md px-3 py-2 bg-background"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Content</label>
+                    <label className="block text-sm font-medium">Note Text</label>
                     <textarea
-                      value={noteForm.content}
-                      onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
-                      rows={6}
+                      value={noteForm.note_text}
+                      onChange={(e) => setNoteForm({ ...noteForm, note_text: e.target.value })}
+                      rows={8}
                       className="mt-1 block w-full border rounded-md px-3 py-2 bg-background"
+                      placeholder="Paste your surgery note text here..."
                       required
                     />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium">Patient Info</label>
-                      <input
-                        type="text"
-                        value={noteForm.patient_info}
-                        onChange={(e) => setNoteForm({ ...noteForm, patient_info: e.target.value })}
-                        className="mt-1 block w-full border rounded-md px-3 py-2 bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium">Surgery Date</label>
-                      <input
-                        type="date"
-                        value={noteForm.surgery_date}
-                        onChange={(e) => setNoteForm({ ...noteForm, surgery_date: e.target.value })}
-                        className="mt-1 block w-full border rounded-md px-3 py-2 bg-background"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium">Surgeon</label>
-                      <input
-                        type="text"
-                        value={noteForm.surgeon}
-                        onChange={(e) => setNoteForm({ ...noteForm, surgeon: e.target.value })}
-                        className="mt-1 block w-full border rounded-md px-3 py-2 bg-background"
-                      />
-                    </div>
                   </div>
                   <div className="flex justify-end space-x-3">
                     <button
@@ -552,7 +510,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                       type="submit"
                       className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
                     >
-                      {editingNote ? 'Update' : 'Create'}
+                      {editingNote ? 'Update' : 'Create'} Note
                     </button>
                   </div>
                 </form>
@@ -565,12 +523,9 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                   <li key={note.id} className="px-6 py-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <h3 className="text-sm font-medium">{note.title}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {note.surgery_date && `${note.surgery_date} • `}{note.surgeon}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                          {note.content.substring(0, 200)}...
+                        <h3 className="text-sm font-medium">Note ID: {note.id.substring(0, 8)}...</h3>
+                        <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
+                          {note.note_text.substring(0, 300)}{note.note_text.length > 300 ? '...' : ''}
                         </p>
                       </div>
                       <div className="flex space-x-2">
@@ -578,11 +533,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                           onClick={() => {
                             setEditingNote(note)
                             setNoteForm({
-                              title: note.title,
-                              content: note.content,
-                              patient_info: note.patient_info || '',
-                              surgery_date: note.surgery_date || '',
-                              surgeon: note.surgeon || ''
+                              note_text: note.note_text
                             })
                             setShowNoteForm(true)
                           }}
