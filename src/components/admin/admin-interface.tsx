@@ -7,7 +7,7 @@ import { Plus, Edit, Trash2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import BulkUploadModal from './bulk-upload/bulk-upload-modal'
 import AssignmentManager from './assignment-manager/assignment-manager'
-import InterRaterManager from './inter-rater/inter-rater-manager'
+import SimpleInterRater from './simple-inter-rater'
 
 interface AdminInterfaceProps {
   user: any
@@ -612,7 +612,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
 
         {/* Inter-rater Reliability Tab */}
         {activeTab === 'inter-rater' && (
-          <InterRaterManager onAssignmentUpdate={loadData} />
+          <SimpleInterRater onUpdate={loadData} />
         )}
 
         {/* Rubric Tab */}
