@@ -192,14 +192,25 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
     if (!confirm('Are you sure you want to delete this note?')) return
     
     try {
-      const { error } = await supabase
+      console.log('Attempting to delete note with ID:', id)
+      const { data, error } = await supabase
         .from('surgery_notes')
         .delete()
         .eq('id', id)
-      if (error) throw error
+        .select()
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        alert(`Error deleting note: ${error.message}`)
+        return
+      }
+      
+      console.log('Delete successful:', data)
       await loadData()
+      alert('Note deleted successfully!')
     } catch (error) {
       console.error('Error deleting note:', error)
+      alert(`Error deleting note: ${error}`)
     }
   }
 
