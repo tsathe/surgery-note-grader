@@ -17,7 +17,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const [notes, setNotes] = useState<SurgeryNote[]>([])
   const [domains, setDomains] = useState<RubricDomain[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'notes' | 'assignments' | 'inter-rater' | 'rubric' | 'users' | 'export'>('notes')
+  const [activeTab, setActiveTab] = useState<'notes' | 'assignments' | 'inter-rater' | 'rubric' | 'users' | 'analytics' | 'export'>('notes')
   const [showNoteForm, setShowNoteForm] = useState(false)
   const [showDomainForm, setShowDomainForm] = useState(false)
   const [showImportRubric, setShowImportRubric] = useState(false)
@@ -455,6 +455,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
               { id: 'inter-rater', label: 'Inter-rater Reliability' },
               { id: 'rubric', label: 'Rubric Domains' },
               { id: 'users', label: 'User Access' },
+              { id: 'analytics', label: 'Analytics' },
               { id: 'export', label: 'Export Data' }
             ].map((tab) => (
               <button

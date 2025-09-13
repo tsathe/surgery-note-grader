@@ -407,7 +407,7 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
                   </div>
                 </div>
                 
-                <ScrollArea className="flex-1 rounded-lg bg-muted/20 border border-border/30">
+                <ScrollArea className="flex-1 rounded-lg bg-muted/20 border border-border/30 max-h-[60vh]">
                   <div className="p-6">
                     <pre className="whitespace-pre-wrap text-[15px] leading-7 font-mono text-foreground/90 selection:bg-primary/20">
                       {selectedNote.note_text}

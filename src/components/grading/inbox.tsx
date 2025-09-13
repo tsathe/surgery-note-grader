@@ -29,7 +29,7 @@ interface InboxProps {
 export default function Inbox({ user, onOpen }: InboxProps) {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [query, setQuery] = useState("")
-  const [phaseFilter, setPhaseFilter] = useState<1 | 2 | "all">("all")
+  // Removed phase filter - all cases are Phase 1
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "inprogress" | "graded">("all")
   const [isLoading, setIsLoading] = useState(true)
   const [inProgressIds, setInProgressIds] = useState<Set<string>>(new Set())
@@ -66,11 +66,11 @@ export default function Inbox({ user, onOpen }: InboxProps) {
 
       const noteList = error || !notes || notes.length === 0 ? DUMMY_NOTES : notes
 
-      // Temporary: first 3 are phase 1, rest phase 2 (replace with real assignment table later)
+      // All cases are Phase 1
       const mapped: Assignment[] = noteList.map((n: any, idx: number) => ({
         id: n.id,
         title: n.description || `Note ${n.id.substring(0, 8)}`,
-        phase: (idx < 5 ? 1 : 2) as 1 | 2,
+        phase: 1 as 1 | 2,
         status: gradedIds.has(n.id) ? "graded" : "pending",
         surgery_date: null,
         surgeon: null,
@@ -97,7 +97,6 @@ export default function Inbox({ user, onOpen }: InboxProps) {
   const filtered = useMemo(() => {
     return assignments.filter((a) => {
       const matchesQuery = !query || a.title.toLowerCase().includes(query.toLowerCase())
-      const matchesPhase = phaseFilter === "all" || a.phase === phaseFilter
       const status = a.status
       const isInProgress = inProgressIds.has(a.id) && status !== "graded"
       const matchesStatus =
@@ -105,9 +104,9 @@ export default function Inbox({ user, onOpen }: InboxProps) {
         (statusFilter === "pending" && status === "pending" && !isInProgress) ||
         (statusFilter === "inprogress" && isInProgress) ||
         (statusFilter === "graded" && status === "graded")
-      return matchesQuery && matchesPhase && matchesStatus
+      return matchesQuery && matchesStatus
     })
-  }, [assignments, query, phaseFilter, statusFilter, inProgressIds])
+  }, [assignments, query, statusFilter, inProgressIds])
 
   function openNote(id: string) {
     // mark as in-progress
@@ -268,24 +267,6 @@ export default function Inbox({ user, onOpen }: InboxProps) {
             onChange={(e) => setQuery(e.target.value)}
             className="h-9 w-64 bg-card/30 border-border/50 focus:bg-card/60 transition-colors"
           />
-          <div className="inline-flex items-center gap-1 rounded-lg border border-border/50 p-1 bg-card/30">
-            {["all", 1, 2].map((p) => (
-              <Button
-                key={String(p)}
-                variant={phaseFilter === p ? "default" : "ghost"}
-                size="sm"
-                className={cn(
-                  "h-8 px-4 text-xs font-medium transition-all",
-                  phaseFilter === p 
-                    ? "bg-primary shadow-sm" 
-                    : "hover:bg-accent/60 text-muted-foreground hover:text-foreground"
-                )}
-                onClick={() => setPhaseFilter(p as any)}
-              >
-                {p === "all" ? "All Phases" : `Phase ${p}`}
-              </Button>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -293,7 +274,6 @@ export default function Inbox({ user, onOpen }: InboxProps) {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 bg-muted/20">
-              <TableHead className="w-[80px] font-semibold">Phase</TableHead>
               <TableHead className="font-semibold">Note Description</TableHead>
               <TableHead className="w-[200px] font-semibold text-center">Progress</TableHead>
               <TableHead className="w-[120px] text-center font-semibold">Status</TableHead>
@@ -303,7 +283,7 @@ export default function Inbox({ user, onOpen }: InboxProps) {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12">
+                <TableCell colSpan={4} className="text-center py-12">
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="text-sm">Loading assignments...</span>
@@ -312,7 +292,7 @@ export default function Inbox({ user, onOpen }: InboxProps) {
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12">
+                <TableCell colSpan={4} className="text-center py-12">
                   <div className="space-y-2">
                     <div className="text-sm text-muted-foreground">No assignments found</div>
                     <div className="text-xs text-muted-foreground/70">
@@ -327,19 +307,6 @@ export default function Inbox({ user, onOpen }: InboxProps) {
                   key={a.id}
                   className="group hover:bg-accent/40 transition-all duration-150 border-border/30"
                 >
-                  <TableCell className="py-4">
-                    <Badge 
-                      variant="secondary" 
-                      className={cn(
-                        "font-medium",
-                        a.phase === 1 
-                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" 
-                          : "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
-                      )}
-                    >
-                      Phase {a.phase}
-                    </Badge>
-                  </TableCell>
                   <TableCell className="py-4">
                     <div className="space-y-1">
                       <div className="font-medium text-foreground/90 group-hover:text-foreground transition-colors">
