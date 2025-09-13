@@ -294,17 +294,16 @@ export default function Inbox({ user, onOpen }: InboxProps) {
           <TableHeader>
             <TableRow className="border-border/50 bg-muted/20">
               <TableHead className="w-[80px] font-semibold">Phase</TableHead>
-              <TableHead className="font-semibold">Surgery Note</TableHead>
-              <TableHead className="hidden md:table-cell font-semibold">Date</TableHead>
-              <TableHead className="hidden md:table-cell font-semibold">Surgeon</TableHead>
-              <TableHead className="hidden md:table-cell font-semibold text-center">Progress</TableHead>
-              <TableHead className="w-[120px] text-right font-semibold">Status</TableHead>
+              <TableHead className="font-semibold">Note Description</TableHead>
+              <TableHead className="w-[200px] font-semibold text-center">Progress</TableHead>
+              <TableHead className="w-[120px] text-center font-semibold">Status</TableHead>
+              <TableHead className="w-[100px] text-center font-semibold">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12">
+                <TableCell colSpan={5} className="text-center py-12">
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="text-sm">Loading assignments...</span>
@@ -313,7 +312,7 @@ export default function Inbox({ user, onOpen }: InboxProps) {
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12">
+                <TableCell colSpan={5} className="text-center py-12">
                   <div className="space-y-2">
                     <div className="text-sm text-muted-foreground">No assignments found</div>
                     <div className="text-xs text-muted-foreground/70">
@@ -326,8 +325,7 @@ export default function Inbox({ user, onOpen }: InboxProps) {
               filtered.map((a) => (
                 <TableRow
                   key={a.id}
-                  className="group cursor-pointer hover:bg-accent/40 transition-all duration-150 border-border/30"
-                  onClick={() => openNote(a.id)}
+                  className="group hover:bg-accent/40 transition-all duration-150 border-border/30"
                 >
                   <TableCell className="py-4">
                     <Badge 
@@ -349,16 +347,10 @@ export default function Inbox({ user, onOpen }: InboxProps) {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell py-4 text-muted-foreground">
-                    {a.surgery_date || "—"}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell py-4 text-muted-foreground">
-                    {a.surgeon || "—"}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell py-4 text-center">
+                  <TableCell className="py-4 text-center">
                     {renderPips(a.id)}
                   </TableCell>
-                  <TableCell className="text-right py-4">
+                  <TableCell className="py-4 text-center">
                     {a.status === "graded" ? (
                       <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
                         ✓ Completed
@@ -372,6 +364,18 @@ export default function Inbox({ user, onOpen }: InboxProps) {
                         Pending
                       </Badge>
                     )}
+                  </TableCell>
+                  <TableCell className="py-4 text-center">
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openNote(a.id)
+                      }}
+                      size="sm"
+                      className="h-8 px-3 text-xs font-medium"
+                    >
+                      Open
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
