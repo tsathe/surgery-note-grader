@@ -6,6 +6,8 @@ import { SurgeryNote, RubricDomain } from '@/lib/types'
 import { Plus, Edit, Trash2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import BulkUploadModal from './bulk-upload/bulk-upload-modal'
+import AssignmentManager from './assignment-manager/assignment-manager'
+import InterRaterManager from './inter-rater/inter-rater-manager'
 
 interface AdminInterfaceProps {
   user: any
@@ -15,7 +17,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const [notes, setNotes] = useState<SurgeryNote[]>([])
   const [domains, setDomains] = useState<RubricDomain[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'notes' | 'rubric' | 'users' | 'export'>('notes')
+  const [activeTab, setActiveTab] = useState<'notes' | 'assignments' | 'inter-rater' | 'rubric' | 'users' | 'export'>('notes')
   const [showNoteForm, setShowNoteForm] = useState(false)
   const [showDomainForm, setShowDomainForm] = useState(false)
   const [showImportRubric, setShowImportRubric] = useState(false)
@@ -47,7 +49,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
     surgery_date: '',
     surgeon: ''
   })
-
+ca
   
   const [domainForm, setDomainForm] = useState({
     name: '',
@@ -442,6 +444,8 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
           <nav className="-mb-px flex space-x-8">
             {[
               { id: 'notes', label: 'Surgery Notes' },
+              { id: 'assignments', label: 'Assignments' },
+              { id: 'inter-rater', label: 'Inter-rater Reliability' },
               { id: 'rubric', label: 'Rubric Domains' },
               { id: 'users', label: 'User Access' },
               { id: 'export', label: 'Export Data' }
@@ -600,6 +604,16 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
               </ul>
             </div>
           </div>
+        )}
+
+        {/* Assignments Tab */}
+        {activeTab === 'assignments' && (
+          <AssignmentManager onAssignmentUpdate={loadData} />
+        )}
+
+        {/* Inter-rater Reliability Tab */}
+        {activeTab === 'inter-rater' && (
+          <InterRaterManager onAssignmentUpdate={loadData} />
         )}
 
         {/* Rubric Tab */}
