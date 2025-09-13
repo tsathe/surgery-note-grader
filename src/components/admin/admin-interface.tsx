@@ -43,6 +43,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
 
   // Form states
   const [noteForm, setNoteForm] = useState({
+    description: '',
     note_text: ''
   })
 
@@ -98,7 +99,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       
       setShowNoteForm(false)
       setEditingNote(null)
-      setNoteForm({ note_text: '' })
+      setNoteForm({ description: '', note_text: '' })
       await loadData()
     } catch (error) {
       console.error('Error saving note:', error)
@@ -471,7 +472,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                   onClick={() => {
                     setShowNoteForm(true)
                     setEditingNote(null)
-                    setNoteForm({ note_text: '' })
+                    setNoteForm({ description: '', note_text: '' })
                   }}
                   className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center space-x-2"
                 >
@@ -487,6 +488,17 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                   {editingNote ? 'Edit Note' : 'Add New Note'}
                 </h3>
                 <form onSubmit={handleNoteSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium">Description</label>
+                    <input
+                      type="text"
+                      value={noteForm.description}
+                      onChange={(e) => setNoteForm({ ...noteForm, description: e.target.value })}
+                      className="mt-1 block w-full border rounded-md px-3 py-2 bg-background"
+                      placeholder="e.g., Note A, Cholecystectomy - Patient B, etc."
+                      required
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium">Note Text</label>
                     <textarea
@@ -523,7 +535,8 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                   <li key={note.id} className="px-6 py-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <h3 className="text-sm font-medium">Note ID: {note.id.substring(0, 8)}...</h3>
+                        <h3 className="text-sm font-medium">{note.description}</h3>
+                        <p className="text-xs text-muted-foreground mt-1">ID: {note.id.substring(0, 8)}...</p>
                         <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
                           {note.note_text.substring(0, 300)}{note.note_text.length > 300 ? '...' : ''}
                         </p>
@@ -533,6 +546,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                           onClick={() => {
                             setEditingNote(note)
                             setNoteForm({
+                              description: note.description,
                               note_text: note.note_text
                             })
                             setShowNoteForm(true)

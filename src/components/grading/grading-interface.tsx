@@ -388,8 +388,9 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
                 <div className="mb-4 flex items-center justify-between">
                   <div className="space-y-1">
                     <h2 className="text-lg font-semibold text-foreground/90">
-                      Surgery Note - {selectedNote.id.substring(0, 8)}...
+                      {selectedNote.description}
                     </h2>
+                    <p className="text-xs text-muted-foreground">ID: {selectedNote.id.substring(0, 8)}...</p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>Progress: {scoredCount}/{totalDomains}</span>
                       <div className="flex items-center gap-1">

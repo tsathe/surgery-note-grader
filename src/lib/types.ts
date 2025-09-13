@@ -1,5 +1,6 @@
 export interface SurgeryNote {
   id: string;
+  description: string;
   note_text: string;
   created_at: string;
   updated_at: string;
