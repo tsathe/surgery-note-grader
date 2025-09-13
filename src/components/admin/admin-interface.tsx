@@ -49,8 +49,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
     surgery_date: '',
     surgeon: ''
   })
-ca
-  
+
   const [domainForm, setDomainForm] = useState({
     name: '',
     description: '',
