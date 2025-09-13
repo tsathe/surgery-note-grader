@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Inbox as InboxIcon, Loader2, CheckCircle2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Inbox as InboxIcon, Loader2, CheckCircle2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Assignment = {
@@ -31,6 +32,8 @@ export default function Inbox({ user, onOpen }: InboxProps) {
   const [query, setQuery] = useState("")
   // Removed phase filter - all cases are Phase 1
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "inprogress" | "graded">("all")
+  const [sortBy, setSortBy] = useState<"description" | "status" | "progress">("description")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [isLoading, setIsLoading] = useState(true)
   const [inProgressIds, setInProgressIds] = useState<Set<string>>(new Set())
   const [domainCount, setDomainCount] = useState<number>(5)
@@ -95,7 +98,7 @@ export default function Inbox({ user, onOpen }: InboxProps) {
   }
 
   const filtered = useMemo(() => {
-    return assignments.filter((a) => {
+    const filteredAssignments = assignments.filter((a) => {
       const matchesQuery = !query || a.title.toLowerCase().includes(query.toLowerCase())
       const status = a.status
       const isInProgress = inProgressIds.has(a.id) && status !== "graded"
@@ -106,7 +109,38 @@ export default function Inbox({ user, onOpen }: InboxProps) {
         (statusFilter === "graded" && status === "graded")
       return matchesQuery && matchesStatus
     })
-  }, [assignments, query, statusFilter, inProgressIds])
+
+    // Sort the filtered assignments
+    return filteredAssignments.sort((a, b) => {
+      let comparison = 0
+      
+      if (sortBy === "description") {
+        comparison = a.title.localeCompare(b.title)
+      } else if (sortBy === "status") {
+        const statusOrder = { graded: 0, pending: 1, inprogress: 2 }
+        const aStatus = inProgressIds.has(a.id) && a.status !== "graded" ? "inprogress" : a.status
+        const bStatus = inProgressIds.has(b.id) && b.status !== "graded" ? "inprogress" : b.status
+        comparison = statusOrder[aStatus] - statusOrder[bStatus]
+      } else if (sortBy === "progress") {
+        // Sort by progress (number of completed domains)
+        const aProgress = isClient ? (() => {
+          try {
+            const raw = localStorage.getItem(`sng_partial_scores_${a.id}`)
+            return raw ? Object.keys(JSON.parse(raw)).length : 0
+          } catch { return 0 }
+        })() : 0
+        const bProgress = isClient ? (() => {
+          try {
+            const raw = localStorage.getItem(`sng_partial_scores_${b.id}`)
+            return raw ? Object.keys(JSON.parse(raw)).length : 0
+          } catch { return 0 }
+        })() : 0
+        comparison = aProgress - bProgress
+      }
+      
+      return sortOrder === "asc" ? comparison : -comparison
+    })
+  }, [assignments, query, statusFilter, inProgressIds, sortBy, sortOrder, isClient])
 
   function openNote(id: string) {
     // mark as in-progress
@@ -267,6 +301,26 @@ export default function Inbox({ user, onOpen }: InboxProps) {
             onChange={(e) => setQuery(e.target.value)}
             className="h-9 w-64 bg-card/30 border-border/50 focus:bg-card/60 transition-colors"
           />
+          <div className="flex items-center gap-2">
+            <Select value={sortBy} onValueChange={(value: "description" | "status" | "progress") => setSortBy(value)}>
+              <SelectTrigger className="h-9 w-40 bg-card/30 border-border/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="description">Description</SelectItem>
+                <SelectItem value="status">Status</SelectItem>
+                <SelectItem value="progress">Progress</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+              className="h-9 px-3 bg-card/30 border-border/50"
+            >
+              {sortOrder === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </div>
 
