@@ -228,6 +228,15 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
           const obj = raw ? JSON.parse(raw) : {}
           obj[domainId] = score
           localStorage.setItem(key, JSON.stringify(obj))
+          
+          // Mark as in-progress when first score is saved
+          const inProgressKey = 'sng_inprogress_ids'
+          const inProgressRaw = localStorage.getItem(inProgressKey) || '[]'
+          const inProgressIds = JSON.parse(inProgressRaw)
+          if (!inProgressIds.includes(selectedNote.id)) {
+            inProgressIds.push(selectedNote.id)
+            localStorage.setItem(inProgressKey, JSON.stringify(inProgressIds))
+          }
         } catch {}
       }
     }
@@ -407,8 +416,8 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
                   </div>
                 </div>
                 
-                <div className="flex-1 rounded-lg bg-muted/20 border border-border/30 overflow-hidden">
-                  <ScrollArea className="h-full">
+                <div className="flex-1 rounded-lg bg-muted/20 border border-border/30 min-h-0">
+                  <ScrollArea className="h-[80vh]">
                     <div className="p-6">
                       <pre className="whitespace-pre-wrap text-[15px] leading-7 font-mono text-foreground/90 selection:bg-primary/20">
                         {selectedNote.note_text}

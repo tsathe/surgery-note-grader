@@ -143,13 +143,9 @@ export default function Inbox({ user, onOpen }: InboxProps) {
   }, [assignments, query, statusFilter, inProgressIds, sortBy, sortOrder, isClient])
 
   function openNote(id: string) {
-    // mark as in-progress
-    const next = new Set(inProgressIds)
-    next.add(id)
-    setInProgressIds(next)
+    // Don't mark as in-progress until actual scoring begins
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem("sng_inprogress_ids", JSON.stringify(Array.from(next)))
         // set selected for grading view
         localStorage.setItem("sng_selected_note_id", id)
       } catch {
