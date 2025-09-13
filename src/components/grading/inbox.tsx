@@ -274,10 +274,10 @@ export default function Inbox({ user, onOpen }: InboxProps) {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 bg-muted/20">
-              <TableHead className="font-semibold">Note Description</TableHead>
+              <TableHead className="font-semibold pl-6">Note Description</TableHead>
               <TableHead className="w-[200px] font-semibold text-center">Progress</TableHead>
               <TableHead className="w-[120px] text-center font-semibold">Status</TableHead>
-              <TableHead className="w-[100px] text-center font-semibold">Action</TableHead>
+              <TableHead className="w-[100px] text-center font-semibold pr-6">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -307,7 +307,7 @@ export default function Inbox({ user, onOpen }: InboxProps) {
                   key={a.id}
                   className="group hover:bg-accent/40 transition-all duration-150 border-border/30"
                 >
-                  <TableCell className="py-4">
+                  <TableCell className="py-4 pl-6">
                     <div className="space-y-1">
                       <div className="font-medium text-foreground/90 group-hover:text-foreground transition-colors">
                         {a.title}
@@ -332,7 +332,7 @@ export default function Inbox({ user, onOpen }: InboxProps) {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="py-4 text-center">
+                  <TableCell className="py-4 text-center pr-6">
                     <Button
                       onClick={(e) => {
                         e.stopPropagation()
