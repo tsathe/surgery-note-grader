@@ -407,13 +407,15 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
                   </div>
                 </div>
                 
-                <ScrollArea className="flex-1 rounded-lg bg-muted/20 border border-border/30 h-[calc(100vh-200px)]">
-                  <div className="p-6">
-                    <pre className="whitespace-pre-wrap text-[15px] leading-7 font-mono text-foreground/90 selection:bg-primary/20">
-                      {selectedNote.note_text}
-                    </pre>
-                  </div>
-                </ScrollArea>
+                <div className="flex-1 rounded-lg bg-muted/20 border border-border/30 overflow-hidden">
+                  <ScrollArea className="h-full">
+                    <div className="p-6">
+                      <pre className="whitespace-pre-wrap text-[15px] leading-7 font-mono text-foreground/90 selection:bg-primary/20">
+                        {selectedNote.note_text}
+                      </pre>
+                    </div>
+                  </ScrollArea>
+                </div>
               </div>
             ) : (
               <div className="flex-1 min-h-0 flex items-center justify-center">
