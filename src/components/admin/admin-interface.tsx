@@ -255,7 +255,6 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         row['Total Score'] = grade.total_score
         row['Comments'] = grade.feedback || ''
         row['Created At'] = new Date(grade.created_at).toLocaleDateString()
-        row['Last Modified'] = grade.updated_at ? new Date(grade.updated_at).toLocaleDateString() : new Date(grade.created_at).toLocaleDateString()
 
         return row
       }) || []
@@ -1069,7 +1068,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => {
-                            console.log('Edit button clicked for note:', note)
+                            image.png                            console.log('Edit button clicked for note:', note)
                             setEditingNote(note)
                             setNoteForm({
                               description: note.description,
@@ -1379,9 +1378,6 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                           <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[100px]">
                             Created
                           </th>
-                          <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[100px]">
-                            Last Modified
-                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-background divide-y divide-border">
@@ -1483,15 +1479,6 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                                 <div className="h-full flex items-center justify-center">
                                   <div className="text-xs text-muted-foreground">
                                     {row['Created At']}
-                                  </div>
-                                </div>
-                              </td>
-                              
-                              {/* Last Modified Date */}
-                              <td className="px-3 py-3 text-center h-16">
-                                <div className="h-full flex items-center justify-center">
-                                  <div className="text-xs text-foreground font-medium">
-                                    {row['Last Modified']}
                                   </div>
                                 </div>
                               </td>
