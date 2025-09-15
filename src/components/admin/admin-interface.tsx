@@ -232,37 +232,77 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const exportData = async () => {
     try {
       console.log('Starting export...')
-      const { data: grades, error } = await supabase
-        .from('grades')
-        .select(`
-          *,
-          surgery_notes (description, note_text),
-          rubric_domains (name)
-        `)
       
-      if (error) {
-        console.error('Supabase error:', error)
-        alert(`Error fetching data: ${error.message}`)
+      // Fetch grades data
+      const { data: grades, error: gradesError } = await supabase
+        .from('grades')
+        .select('*')
+      
+      if (gradesError) {
+        console.error('Grades error:', gradesError)
+        alert(`Error fetching grades: ${gradesError.message}`)
+        return
+      }
+
+      // Fetch surgery notes data
+      const { data: notes, error: notesError } = await supabase
+        .from('surgery_notes')
+        .select('id, description, note_text')
+      
+      if (notesError) {
+        console.error('Notes error:', notesError)
+        alert(`Error fetching notes: ${notesError.message}`)
+        return
+      }
+
+      // Fetch rubric domains data
+      const { data: domains, error: domainsError } = await supabase
+        .from('rubric_domains')
+        .select('id, name')
+      
+      if (domainsError) {
+        console.error('Domains error:', domainsError)
+        alert(`Error fetching domains: ${domainsError.message}`)
         return
       }
 
       console.log('Grades data:', grades)
+      console.log('Notes data:', notes)
+      console.log('Domains data:', domains)
 
       if (!grades || grades.length === 0) {
         alert('No grading data found to export.')
         return
       }
 
+      // Create lookup maps
+      const notesMap = new Map(notes?.map(note => [note.id, note]) || [])
+      const domainsMap = new Map(domains?.map(domain => [domain.id, domain]) || [])
+
       // Convert to CSV format
-      const csvData = grades.map(grade => ({
-        'Note Description': grade.surgery_notes?.description || '',
-        'Note ID': grade.note_id,
-        'Grader ID': grade.grader_id,
-        'Total Score': grade.total_score,
-        'Feedback': grade.feedback || '',
-        'Date': new Date(grade.created_at).toLocaleDateString(),
-        ...grade.domain_scores
-      }))
+      const csvData = grades.map(grade => {
+        const note = notesMap.get(grade.note_id)
+        const domainScores = grade.domain_scores || {}
+        
+        // Create a row with all the data
+        const row = {
+          'Note Description': note?.description || '',
+          'Note ID': grade.note_id,
+          'Grader ID': grade.grader_id,
+          'Total Score': grade.total_score,
+          'Feedback': grade.feedback || '',
+          'Date': new Date(grade.created_at).toLocaleDateString(),
+        }
+
+        // Add individual domain scores
+        Object.entries(domainScores).forEach(([domainId, score]) => {
+          const domain = domainsMap.get(domainId)
+          const domainName = domain?.name || `Domain ${domainId}`
+          row[domainName] = score
+        })
+
+        return row
+      })
 
       console.log('CSV data:', csvData)
 
