@@ -1068,7 +1068,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => {
-                            image.png                            console.log('Edit button clicked for note:', note)
+                            console.log('Edit button clicked for note:', note)
                             setEditingNote(note)
                             setNoteForm({
                               description: note.description,
