@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { SurgeryNote, RubricDomain } from '@/lib/types'
 import { Plus, Edit, Trash2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -116,14 +116,15 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         return
       }
 
-      // Try to fetch auth users data for emails (grader_id references auth.users)
+      // Fetch auth users data for emails using admin client
       let usersMap = new Map()
       
       try {
-        const { data: authUsers, error: authUsersError } = await supabase.auth.admin.listUsers()
+        console.log('Fetching auth users with admin client...')
+        const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers()
         
         if (authUsersError) {
-          console.log('Auth users not accessible, trying custom users table')
+          console.error('Auth users error:', authUsersError)
           // Fallback to custom users table if admin access fails
           const { data: users, error: usersError } = await supabase
             .from('users')
@@ -136,10 +137,11 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
           
           usersMap = new Map(users?.map(user => [user.id, user]) || [])
         } else {
+          console.log('Successfully fetched auth users:', authUsers?.users?.length || 0)
           usersMap = new Map(authUsers?.users?.map(user => [user.id, { email: user.email }]) || [])
         }
       } catch (error) {
-        console.log('Auth admin access failed, trying custom users table')
+        console.error('Auth admin access failed:', error)
         // Fallback to custom users table
         const { data: users, error: usersError } = await supabase
           .from('users')
@@ -406,15 +408,16 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         return
       }
 
-      // Try to fetch auth users data for emails (grader_id references auth.users)
+      // Fetch auth users data for emails using admin client
       let usersMap = new Map()
       let usersData = []
       
       try {
-        const { data: authUsers, error: authUsersError } = await supabase.auth.admin.listUsers()
+        console.log('Fetching auth users for export with admin client...')
+        const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers()
         
         if (authUsersError) {
-          console.log('Auth users not accessible, trying custom users table')
+          console.error('Auth users error:', authUsersError)
           // Fallback to custom users table if admin access fails
           const { data: users, error: usersError } = await supabase
             .from('users')
@@ -429,11 +432,12 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
           usersData = users || []
           usersMap = new Map(users?.map(user => [user.id, user]) || [])
         } else {
+          console.log('Successfully fetched auth users for export:', authUsers?.users?.length || 0)
           usersData = authUsers?.users || []
           usersMap = new Map(authUsers?.users?.map(user => [user.id, { email: user.email }]) || [])
         }
       } catch (error) {
-        console.log('Auth admin access failed, trying custom users table')
+        console.error('Auth admin access failed for export:', error)
         // Fallback to custom users table
         const { data: users, error: usersError } = await supabase
           .from('users')
