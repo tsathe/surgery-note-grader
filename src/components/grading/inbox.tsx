@@ -143,15 +143,18 @@ export default function Inbox({ user, onOpen }: InboxProps) {
   }, [assignments, query, statusFilter, inProgressIds, sortBy, sortOrder, isClient])
 
   function openNote(id: string) {
+    console.log('📝 Opening note:', id)
     // Don't mark as in-progress until actual scoring begins
     if (typeof window !== 'undefined') {
       try {
         // set selected for grading view
         localStorage.setItem("sng_selected_note_id", id)
+        console.log('✅ Saved note ID to localStorage')
       } catch {
-        // localStorage might be disabled
+        console.error('❌ Failed to save note ID to localStorage')
       }
     }
+    console.log('🚀 Calling onOpen callback')
     onOpen?.(id)
   }
 

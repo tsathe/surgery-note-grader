@@ -185,33 +185,53 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
   }
 
   const prefillExistingGrade = async (noteId: string, userId: string) => {
+    console.log('🔍 Prefilling existing grade for note:', noteId, 'user:', userId)
     try {
       // Try backend grade first
       const { data, error } = await supabase
         .from('grades')
-        .select('domain_scores,feedback')
+        .select('domain_scores,feedback,total_score,created_at,updated_at')
         .eq('note_id', noteId)
         .eq('grader_id', userId)
         .limit(1)
-        .maybeSingle?.() // if available
+        .maybeSingle()
+      
+      console.log('🔍 Query result:', { data, error })
+      
       if (!error && data) {
+        console.log('✅ Found existing grade:', data)
         const raw = (data as any).domain_scores || {}
         const { _meta, ...ds } = raw as any
+        console.log('📊 Extracted scores:', ds)
         setScores(ds)
         setFeedback(((data as any).feedback ?? '') as string)
+        console.log('✅ Prefilled scores and feedback successfully')
         return
+      } else if (error) {
+        console.error('❌ Error fetching grade:', error)
+      } else {
+        console.log('ℹ️ No existing grade found for this note')
       }
-    } catch {}
+    } catch (err) {
+      console.error('❌ Exception in prefillExistingGrade:', err)
+    }
+    
     // Fallback to local saved last grade
     if (typeof window !== 'undefined') {
       try {
         const raw = localStorage.getItem(`sng_last_grade_${noteId}`)
         if (raw) {
+          console.log('🔍 Found local storage grade:', raw)
           const obj = JSON.parse(raw) as { scores?: Record<string, number>, feedback?: string }
           if (obj?.scores) setScores(obj.scores)
           if (typeof obj?.feedback === 'string') setFeedback(obj.feedback)
+          console.log('✅ Loaded from local storage')
+        } else {
+          console.log('ℹ️ No local storage grade found')
         }
-      } catch {}
+      } catch (err) {
+        console.error('❌ Error loading from local storage:', err)
+      }
     }
   }
 
