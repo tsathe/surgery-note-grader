@@ -70,6 +70,12 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
     }
   }, [activeTab])
 
+  // Add a refresh mechanism that can be called manually
+  const refreshDataTable = () => {
+    console.log('Manually refreshing data table...')
+    loadDataTable()
+  }
+
   // Auto-load completion data when switching to completion tab
   useEffect(() => {
     if (activeTab === 'completion') {
@@ -102,15 +108,21 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const loadDataTable = async () => {
     setIsLoadingData(true)
     try {
+      console.log('🔄 Loading grading data table...')
+      
       // Fetch grades data
       const { data: grades, error: gradesError } = await supabase
         .from('grades')
         .select('*')
+        .order('created_at', { ascending: false })
       
       if (gradesError) {
         console.error('Grades error:', gradesError)
         return
       }
+      
+      console.log('📊 Fetched grades:', grades?.length || 0, 'records')
+      console.log('📊 Latest grade:', grades?.[0])
 
       // Fetch surgery notes data
       const { data: notes, error: notesError } = await supabase
@@ -210,6 +222,9 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         return row
       }) || []
 
+      console.log('📊 Processed table data:', tableData?.length || 0, 'rows')
+      console.log('📊 Sample row:', tableData?.[0])
+      
       setDataTableData(tableData)
     } catch (error) {
       console.error('Error loading data table:', error)
@@ -1238,7 +1253,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                 </p>
               </div>
               <button
-                onClick={loadDataTable}
+                onClick={refreshDataTable}
                 disabled={isLoadingData}
                 className="bg-secondary text-secondary-foreground px-3 py-2 rounded-md hover:bg-secondary/80 flex items-center space-x-2 disabled:opacity-50 text-sm"
               >
