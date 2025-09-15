@@ -1327,25 +1327,31 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                           const commentPreview = comment.length > 50 ? comment.substring(0, 50) + '...' : comment
                           
                           return (
-                            <tr key={index} className="hover:bg-muted/10 transition-colors">
+                            <tr key={index} className="hover:bg-muted/10 transition-colors h-16">
                               {/* Grader Email - Sticky */}
-                              <td className="px-4 py-3 text-sm font-medium text-foreground sticky left-0 bg-background z-10">
-                                <div className="truncate max-w-[180px]" title={row['Grader Email']}>
-                                  {row['Grader Email']}
+                              <td className="px-4 py-3 text-sm font-medium text-foreground sticky left-0 bg-background z-10 h-16">
+                                <div className="h-full flex items-center">
+                                  <div className="truncate max-w-[180px]" title={row['Grader Email']}>
+                                    {row['Grader Email']}
+                                  </div>
                                 </div>
                               </td>
                               
                               {/* Note ID */}
-                              <td className="px-3 py-3 text-center">
-                                <div className="text-xs font-mono text-muted-foreground">
-                                  {row['Note ID'].substring(0, 8)}...
+                              <td className="px-3 py-3 text-center h-16">
+                                <div className="h-full flex items-center justify-center">
+                                  <div className="text-xs font-mono text-muted-foreground">
+                                    {row['Note ID'].substring(0, 8)}...
+                                  </div>
                                 </div>
                               </td>
                               
                               {/* Note Description */}
-                              <td className="px-3 py-3 text-sm text-foreground">
-                                <div className="truncate max-w-[180px]" title={row['Note Description']}>
-                                  {row['Note Description']}
+                              <td className="px-3 py-3 text-sm text-foreground h-16">
+                                <div className="h-full flex items-center">
+                                  <div className="truncate max-w-[180px]" title={row['Note Description']}>
+                                    {row['Note Description']}
+                                  </div>
                                 </div>
                               </td>
                               
@@ -1356,32 +1362,36 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                                   const score = row[key] || 0
                                   const maxScore = 5 // Assuming max score is 5
                                   return (
-                                    <td key={key} className="px-2 py-3 text-center">
-                                      <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${getScoreColor(score, maxScore)}`}>
-                                        {score || '-'}
+                                    <td key={key} className="px-2 py-3 text-center h-16">
+                                      <div className="h-full flex items-center justify-center">
+                                        <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${getScoreColor(score, maxScore)}`}>
+                                          {score || '-'}
+                                        </div>
                                       </div>
                                     </td>
                                   )
                                 })}
                               
                               {/* Total Score */}
-                              <td className="px-3 py-3 text-center">
-                                <div className={`inline-flex items-center justify-center w-10 h-8 rounded-full text-sm font-bold ${getScoreColor(row['Total Score'], 25)}`}>
-                                  {row['Total Score'] || 0}
+                              <td className="px-3 py-3 text-center h-16">
+                                <div className="h-full flex items-center justify-center">
+                                  <div className={`inline-flex items-center justify-center w-10 h-8 rounded-full text-sm font-bold ${getScoreColor(row['Total Score'], 25)}`}>
+                                    {row['Total Score'] || 0}
+                                  </div>
                                 </div>
                               </td>
                               
                               {/* Comments - Expandable */}
-                              <td className="px-3 py-3 text-sm text-foreground max-w-[300px]">
+                              <td className="px-3 py-3 text-sm text-foreground max-w-[300px] h-16">
                                 {comment ? (
-                                  <div className="space-y-1">
-                                    <div className={`text-xs text-muted-foreground break-words ${
-                                      isCommentExpanded ? 'whitespace-pre-wrap' : 'line-clamp-3'
+                                  <div className="h-full flex flex-col justify-between">
+                                    <div className={`text-xs text-muted-foreground break-words overflow-hidden ${
+                                      isCommentExpanded ? 'whitespace-pre-wrap' : 'line-clamp-2'
                                     }`}>
                                       {isCommentExpanded ? comment : commentPreview}
                                     </div>
                                     {comment.length > 50 && (
-                                      <div className="flex items-center justify-between">
+                                      <div className="flex items-center justify-between mt-1">
                                         <button
                                           onClick={() => toggleCommentExpansion(gradeId)}
                                           className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
@@ -1397,14 +1407,18 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                                     )}
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-muted-foreground italic">No comments</span>
+                                  <div className="h-full flex items-center">
+                                    <span className="text-xs text-muted-foreground italic">No comments</span>
+                                  </div>
                                 )}
                               </td>
                               
                               {/* Created Date */}
-                              <td className="px-3 py-3 text-center">
-                                <div className="text-xs text-muted-foreground">
-                                  {row['Created At']}
+                              <td className="px-3 py-3 text-center h-16">
+                                <div className="h-full flex items-center justify-center">
+                                  <div className="text-xs text-muted-foreground">
+                                    {row['Created At']}
+                                  </div>
                                 </div>
                               </td>
                             </tr>
