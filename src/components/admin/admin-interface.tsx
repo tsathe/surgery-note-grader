@@ -16,7 +16,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const [notes, setNotes] = useState<SurgeryNote[]>([])
   const [domains, setDomains] = useState<RubricDomain[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'notes' | 'rubric' | 'users' | 'data' | 'export'>('notes')
+  const [activeTab, setActiveTab] = useState<'notes' | 'rubric' | 'users' | 'data' | 'completion' | 'export'>('notes')
   const [showDomainForm, setShowDomainForm] = useState(false)
   const [showImportRubric, setShowImportRubric] = useState(false)
   const [importRubricText, setImportRubricText] = useState('')
@@ -26,6 +26,8 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [dataTableData, setDataTableData] = useState<any[]>([])
   const [isLoadingData, setIsLoadingData] = useState(false)
+  const [completionData, setCompletionData] = useState<any[]>([])
+  const [isLoadingCompletion, setIsLoadingCompletion] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   
   // User management state
@@ -64,6 +66,13 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   useEffect(() => {
     if (activeTab === 'data') {
       loadDataTable()
+    }
+  }, [activeTab])
+
+  // Auto-load completion data when switching to completion tab
+  useEffect(() => {
+    if (activeTab === 'completion') {
+      loadCompletionData()
     }
   }, [activeTab])
 
@@ -205,6 +214,122 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       console.error('Error loading data table:', error)
     } finally {
       setIsLoadingData(false)
+    }
+  }
+
+  const loadCompletionData = async () => {
+    setIsLoadingCompletion(true)
+    try {
+      // Fetch grades data
+      const { data: grades, error: gradesError } = await supabase
+        .from('grades')
+        .select('*')
+      
+      if (gradesError) {
+        console.error('Grades error:', gradesError)
+        return
+      }
+
+      // Fetch surgery notes data
+      const { data: notes, error: notesError } = await supabase
+        .from('surgery_notes')
+        .select('id, description')
+        .order('description', { ascending: true })
+      
+      if (notesError) {
+        console.error('Notes error:', notesError)
+        return
+      }
+
+      // Fetch auth users data for emails using admin client
+      let usersMap = new Map()
+      
+      try {
+        console.log('Fetching auth users for completion data...')
+        const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers()
+        
+        if (authUsersError) {
+          console.error('Auth users error:', authUsersError)
+          // Fallback to custom users table if admin access fails
+          const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('id, email, first_name, last_name')
+          
+          if (usersError) {
+            console.error('Users error:', usersError)
+            return
+          }
+          
+          usersMap = new Map(users?.map(user => [user.id, user]) || [])
+        } else {
+          console.log('Successfully fetched auth users for completion:', authUsers?.users?.length || 0)
+          usersMap = new Map(authUsers?.users?.map(user => [user.id, { email: user.email }]) || [])
+        }
+      } catch (error) {
+        console.error('Auth admin access failed for completion:', error)
+        // Fallback to custom users table
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('id, email, first_name, last_name')
+        
+        if (usersError) {
+          console.error('Users error:', usersError)
+          return
+        }
+        
+        usersMap = new Map(users?.map(user => [user.id, user]) || [])
+      }
+
+      // Create completion matrix
+      const completionMatrix = []
+      
+      // Get all unique graders
+      const graderIds = [...new Set(grades?.map(grade => grade.grader_id) || [])]
+      
+      for (const graderId of graderIds) {
+        const user = usersMap.get(graderId)
+        const userEmail = user?.email || `User ${graderId}`
+        
+        const row = {
+          userId: graderId,
+          userEmail: userEmail,
+          totalNotes: notes?.length || 0,
+          completedNotes: 0,
+          completionRate: 0,
+          noteCompletions: {}
+        }
+        
+        // Check which notes this grader has completed
+        const userGrades = grades?.filter(grade => grade.grader_id === graderId) || []
+        row.completedNotes = userGrades.length
+        
+        // Create note completion status
+        for (const note of notes || []) {
+          const hasCompleted = userGrades.some(grade => grade.note_id === note.id)
+          row.noteCompletions[note.id] = {
+            completed: hasCompleted,
+            noteDescription: note.description,
+            gradeId: hasCompleted ? userGrades.find(grade => grade.note_id === note.id)?.id : null
+          }
+        }
+        
+        row.completionRate = notes?.length > 0 ? (row.completedNotes / notes.length) * 100 : 0
+        completionMatrix.push(row)
+      }
+      
+      // Sort by completion rate (highest first)
+      completionMatrix.sort((a, b) => b.completionRate - a.completionRate)
+      
+      setCompletionData({
+        matrix: completionMatrix,
+        notes: notes || [],
+        totalGraders: graderIds.length,
+        totalNotes: notes?.length || 0
+      })
+    } catch (error) {
+      console.error('Error loading completion data:', error)
+    } finally {
+      setIsLoadingCompletion(false)
     }
   }
 
@@ -723,6 +848,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
               { id: 'rubric', label: 'Rubric Domains' },
               { id: 'users', label: 'User Access' },
               { id: 'data', label: 'Grading Data' },
+              { id: 'completion', label: 'Completion Heatmap' },
               { id: 'export', label: 'Export Data' }
             ].map((tab) => (
               <button
@@ -1106,6 +1232,140 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Completion Heatmap Tab */}
+        {activeTab === 'completion' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold">Completion Heatmap</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Visual overview of grading progress by user and note
+                </p>
+              </div>
+              <button
+                onClick={loadCompletionData}
+                disabled={isLoadingCompletion}
+                className="bg-secondary text-secondary-foreground px-3 py-2 rounded-md hover:bg-secondary/80 flex items-center space-x-2 disabled:opacity-50 text-sm"
+              >
+                {isLoadingCompletion ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
+
+            {isLoadingCompletion ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="text-muted-foreground">Loading completion data...</div>
+              </div>
+            ) : !completionData.matrix || completionData.matrix.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No grading data found. Start grading some notes to see the heatmap.
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Summary Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-card border p-4 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">{completionData.totalGraders}</div>
+                    <div className="text-sm text-muted-foreground">Active Graders</div>
+                  </div>
+                  <div className="bg-card border p-4 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">{completionData.totalNotes}</div>
+                    <div className="text-sm text-muted-foreground">Total Notes</div>
+                  </div>
+                  <div className="bg-card border p-4 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
+                      {Math.round(completionData.matrix.reduce((acc, user) => acc + user.completionRate, 0) / completionData.matrix.length)}%
+                    </div>
+                    <div className="text-sm text-muted-foreground">Avg Completion</div>
+                  </div>
+                </div>
+
+                {/* Heatmap Table */}
+                <div className="bg-card border shadow-sm overflow-hidden sm:rounded-lg">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky left-0 bg-muted/50 z-10">
+                            Grader
+                          </th>
+                          <th className="px-2 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Progress
+                          </th>
+                          {completionData.notes.map((note) => (
+                            <th
+                              key={note.id}
+                              className="px-2 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[80px]"
+                              title={note.description}
+                            >
+                              <div className="truncate max-w-[60px]">{note.description}</div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="bg-background divide-y divide-border">
+                        {completionData.matrix.map((user, userIndex) => (
+                          <tr key={user.userId} className="hover:bg-muted/30">
+                            <td className="px-4 py-3 text-sm font-medium text-foreground sticky left-0 bg-background z-10">
+                              <div className="truncate max-w-[200px]" title={user.userEmail}>
+                                {user.userEmail}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {user.completedNotes}/{user.totalNotes} notes
+                              </div>
+                            </td>
+                            <td className="px-2 py-3 text-center">
+                              <div className="flex items-center justify-center space-x-2">
+                                <div className="w-16 bg-muted rounded-full h-2">
+                                  <div
+                                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${user.completionRate}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-medium text-muted-foreground min-w-[35px]">
+                                  {Math.round(user.completionRate)}%
+                                </span>
+                              </div>
+                            </td>
+                            {completionData.notes.map((note) => {
+                              const completion = user.noteCompletions[note.id]
+                              return (
+                                <td key={note.id} className="px-2 py-3 text-center">
+                                  <div
+                                    className={`w-6 h-6 mx-auto rounded-full flex items-center justify-center text-xs font-medium transition-all duration-200 ${
+                                      completion?.completed
+                                        ? 'bg-green-500 text-white shadow-lg shadow-green-500/25'
+                                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                    }`}
+                                    title={completion?.completed ? `Completed: ${note.description}` : `Not completed: ${note.description}`}
+                                  >
+                                    {completion?.completed ? '✓' : '○'}
+                                  </div>
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Legend */}
+                <div className="flex items-center justify-center space-x-6 text-sm text-muted-foreground">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">✓</div>
+                    <span>Completed</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-muted rounded-full flex items-center justify-center text-muted-foreground text-xs">○</div>
+                    <span>Not Completed</span>
+                  </div>
                 </div>
               </div>
             )}
