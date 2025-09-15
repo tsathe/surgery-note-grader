@@ -28,6 +28,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const [isLoadingData, setIsLoadingData] = useState(false)
   const [completionData, setCompletionData] = useState<any[]>([])
   const [isLoadingCompletion, setIsLoadingCompletion] = useState(false)
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set())
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   
   // User management state
@@ -217,6 +218,28 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
     }
   }
 
+  // Helper function to get score color based on value
+  const getScoreColor = (score: number, maxScore: number = 5) => {
+    if (score === 0) return 'bg-slate-100 text-slate-500'
+    const percentage = (score / maxScore) * 100
+    if (percentage >= 80) return 'bg-emerald-100 text-emerald-700'
+    if (percentage >= 60) return 'bg-green-100 text-green-700'
+    if (percentage >= 40) return 'bg-yellow-100 text-yellow-700'
+    if (percentage >= 20) return 'bg-orange-100 text-orange-700'
+    return 'bg-red-100 text-red-700'
+  }
+
+  // Helper function to toggle comment expansion
+  const toggleCommentExpansion = (gradeId: string) => {
+    const newExpanded = new Set(expandedComments)
+    if (newExpanded.has(gradeId)) {
+      newExpanded.delete(gradeId)
+    } else {
+      newExpanded.add(gradeId)
+    }
+    setExpandedComments(newExpanded)
+  }
+
   const loadCompletionData = async () => {
     setIsLoadingCompletion(true)
     try {
@@ -238,6 +261,17 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       
       if (notesError) {
         console.error('Notes error:', notesError)
+        return
+      }
+
+      // Fetch rubric domains data
+      const { data: domains, error: domainsError } = await supabase
+        .from('rubric_domains')
+        .select('id, name')
+        .order('order', { ascending: true })
+      
+      if (domainsError) {
+        console.error('Domains error:', domainsError)
         return
       }
 
@@ -305,11 +339,19 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         
         // Create note completion status
         for (const note of notes || []) {
-          const hasCompleted = userGrades.some(grade => grade.note_id === note.id)
+          const userGrade = userGrades.find(grade => grade.note_id === note.id)
+          const hasCompleted = !!userGrade
+          const isPartiallyCompleted = hasCompleted && userGrade?.domain_scores && 
+            Object.keys(userGrade.domain_scores).length > 0 && 
+            Object.keys(userGrade.domain_scores).length < (domains?.length || 0)
+          
           row.noteCompletions[note.id] = {
             completed: hasCompleted,
+            partiallyCompleted: isPartiallyCompleted,
             noteDescription: note.description,
-            gradeId: hasCompleted ? userGrades.find(grade => grade.note_id === note.id)?.id : null
+            gradeId: hasCompleted ? userGrade?.id : null,
+            completedDomains: hasCompleted ? Object.keys(userGrade?.domain_scores || {}).length : 0,
+            totalDomains: domains?.length || 0
           }
         }
         
@@ -1202,36 +1244,172 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                 No grading data found. Start grading some notes to see data here.
               </div>
             ) : (
-              <div className="bg-card border shadow-sm overflow-hidden sm:rounded-md">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        {Object.keys(dataTableData[0] || {}).map((key) => (
-                          <th
-                            key={key}
-                            className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
-                          >
-                            {key}
+              <div className="space-y-4">
+                {/* Summary Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-card border p-4 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">{dataTableData.length}</div>
+                    <div className="text-sm text-muted-foreground">Total Grades</div>
+                  </div>
+                  <div className="bg-card border p-4 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
+                      {Math.round(dataTableData.reduce((acc, row) => acc + (row['Total Score'] || 0), 0) / dataTableData.length)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Avg Total Score</div>
+                  </div>
+                  <div className="bg-card border p-4 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
+                      {new Set(dataTableData.map(row => row['Grader Email'])).size}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Unique Graders</div>
+                  </div>
+                  <div className="bg-card border p-4 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
+                      {new Set(dataTableData.map(row => row['Note ID'])).size}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Unique Notes</div>
+                  </div>
+                </div>
+
+                {/* Beautiful Data Table */}
+                <div className="bg-card border shadow-sm overflow-hidden sm:rounded-lg">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky left-0 bg-muted/50 z-10 min-w-[200px]">
+                            Grader
                           </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="bg-background divide-y divide-border">
-                      {dataTableData.map((row, index) => (
-                        <tr key={index} className="hover:bg-muted/30">
-                          {Object.values(row).map((value, cellIndex) => (
-                            <td
-                              key={cellIndex}
-                              className="px-6 py-4 whitespace-nowrap text-sm text-foreground"
-                            >
-                              {String(value)}
-                            </td>
-                          ))}
+                          <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[120px]">
+                            Note
+                          </th>
+                          {Object.keys(dataTableData[0] || {})
+                            .filter(key => !['Grader Email', 'Grader ID', 'Note ID', 'Note Description', 'Total Score', 'Comments', 'Created At'].includes(key))
+                            .map((key) => (
+                              <th
+                                key={key}
+                                className="px-2 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[80px]"
+                                title={key}
+                              >
+                                <div className="truncate max-w-[60px]">{key}</div>
+                              </th>
+                            ))}
+                          <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[80px]">
+                            Total
+                          </th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[200px]">
+                            Comments
+                          </th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[100px]">
+                            Date
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="bg-background divide-y divide-border">
+                        {dataTableData.map((row, index) => {
+                          const gradeId = `${row['Grader ID']}-${row['Note ID']}`
+                          const isCommentExpanded = expandedComments.has(gradeId)
+                          const comment = row['Comments'] || ''
+                          const commentPreview = comment.length > 50 ? comment.substring(0, 50) + '...' : comment
+                          
+                          return (
+                            <tr key={index} className="hover:bg-muted/30 transition-colors">
+                              {/* Grader Email - Sticky */}
+                              <td className="px-4 py-3 text-sm font-medium text-foreground sticky left-0 bg-background z-10">
+                                <div className="truncate max-w-[180px]" title={row['Grader Email']}>
+                                  {row['Grader Email']}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {row['Note Description']}
+                                </div>
+                              </td>
+                              
+                              {/* Note Info */}
+                              <td className="px-3 py-3 text-center">
+                                <div className="text-xs font-mono text-muted-foreground">
+                                  {row['Note ID'].substring(0, 8)}...
+                                </div>
+                              </td>
+                              
+                              {/* Domain Scores with Heat Mapping */}
+                              {Object.keys(row)
+                                .filter(key => !['Grader Email', 'Grader ID', 'Note ID', 'Note Description', 'Total Score', 'Comments', 'Created At'].includes(key))
+                                .map((key) => {
+                                  const score = row[key] || 0
+                                  const maxScore = 5 // Assuming max score is 5
+                                  return (
+                                    <td key={key} className="px-2 py-3 text-center">
+                                      <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${getScoreColor(score, maxScore)}`}>
+                                        {score || '-'}
+                                      </div>
+                                    </td>
+                                  )
+                                })}
+                              
+                              {/* Total Score */}
+                              <td className="px-3 py-3 text-center">
+                                <div className={`inline-flex items-center justify-center w-10 h-8 rounded-full text-sm font-bold ${getScoreColor(row['Total Score'], 25)}`}>
+                                  {row['Total Score'] || 0}
+                                </div>
+                              </td>
+                              
+                              {/* Comments - Expandable */}
+                              <td className="px-3 py-3 text-sm text-foreground">
+                                {comment ? (
+                                  <div className="space-y-1">
+                                    <div className="text-xs text-muted-foreground">
+                                      {isCommentExpanded ? comment : commentPreview}
+                                    </div>
+                                    {comment.length > 50 && (
+                                      <button
+                                        onClick={() => toggleCommentExpansion(gradeId)}
+                                        className="text-xs text-primary hover:text-primary/80 font-medium"
+                                      >
+                                        {isCommentExpanded ? 'Show less' : 'Show more'}
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">No comments</span>
+                                )}
+                              </td>
+                              
+                              {/* Created Date */}
+                              <td className="px-3 py-3 text-center">
+                                <div className="text-xs text-muted-foreground">
+                                  {row['Created At']}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Legend for Score Colors */}
+                <div className="flex items-center justify-center space-x-4 text-sm text-muted-foreground">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-xs font-semibold">5</div>
+                    <span>Excellent (4-5)</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-semibold">3</div>
+                    <span>Good (3-4)</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center text-xs font-semibold">2</div>
+                    <span>Fair (2-3)</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-orange-100 text-orange-700 rounded-full flex items-center justify-center text-xs font-semibold">1</div>
+                    <span>Poor (1-2)</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center text-xs font-semibold">-</div>
+                    <span>Not scored</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -1321,9 +1499,9 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                             </td>
                             <td className="px-2 py-3 text-center">
                               <div className="flex items-center justify-center space-x-2">
-                                <div className="w-16 bg-muted rounded-full h-2">
+                                <div className="w-16 bg-slate-200 rounded-full h-2">
                                   <div
-                                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                                    className="bg-emerald-400 h-2 rounded-full transition-all duration-300"
                                     style={{ width: `${user.completionRate}%` }}
                                   />
                                 </div>
@@ -1338,13 +1516,25 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                                 <td key={note.id} className="px-2 py-3 text-center">
                                   <div
                                     className={`w-6 h-6 mx-auto rounded-full flex items-center justify-center text-xs font-medium transition-all duration-200 ${
-                                      completion?.completed
-                                        ? 'bg-green-500 text-white shadow-lg shadow-green-500/25'
-                                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                      completion?.completed && !completion?.partiallyCompleted
+                                        ? 'bg-emerald-400 text-white shadow-sm shadow-emerald-400/20'
+                                        : completion?.partiallyCompleted
+                                        ? 'bg-amber-400 text-white shadow-sm shadow-amber-400/20'
+                                        : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
                                     }`}
-                                    title={completion?.completed ? `Completed: ${note.description}` : `Not completed: ${note.description}`}
+                                    title={
+                                      completion?.completed && !completion?.partiallyCompleted
+                                        ? `Completed: ${note.description}`
+                                        : completion?.partiallyCompleted
+                                        ? `In Progress: ${note.description} (${completion.completedDomains}/${completion.totalDomains} domains)`
+                                        : `Not started: ${note.description}`
+                                    }
                                   >
-                                    {completion?.completed ? '✓' : '○'}
+                                    {completion?.completed && !completion?.partiallyCompleted
+                                      ? '✓'
+                                      : completion?.partiallyCompleted
+                                      ? '◐'
+                                      : '○'}
                                   </div>
                                 </td>
                               )
@@ -1359,12 +1549,16 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                 {/* Legend */}
                 <div className="flex items-center justify-center space-x-6 text-sm text-muted-foreground">
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">✓</div>
+                    <div className="w-4 h-4 bg-emerald-400 rounded-full flex items-center justify-center text-white text-xs">✓</div>
                     <span>Completed</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-muted rounded-full flex items-center justify-center text-muted-foreground text-xs">○</div>
-                    <span>Not Completed</span>
+                    <div className="w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center text-white text-xs">◐</div>
+                    <span>In Progress</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-slate-200 rounded-full flex items-center justify-center text-slate-500 text-xs">○</div>
+                    <span>Not Started</span>
                   </div>
                 </div>
               </div>
