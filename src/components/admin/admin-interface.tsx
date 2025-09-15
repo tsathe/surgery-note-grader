@@ -255,7 +255,6 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         row['Total Score'] = grade.total_score
         row['Comments'] = grade.feedback || ''
         row['Created At'] = new Date(grade.created_at).toLocaleDateString()
-        row['Updated At'] = grade.updated_at ? new Date(grade.updated_at).toLocaleDateString() : 'Never'
         row['Last Modified'] = grade.updated_at ? new Date(grade.updated_at).toLocaleDateString() : new Date(grade.created_at).toLocaleDateString()
 
         return row
@@ -263,6 +262,15 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
 
       console.log('📊 Processed table data:', tableData?.length || 0, 'rows')
       console.log('📊 Sample row:', tableData?.[0])
+      
+      // Show toast if we found recent updates
+      if (recentGrades.length > 0) {
+        setToast({ 
+          message: `Found ${recentGrades.length} recent grade update(s)!`, 
+          type: 'success' 
+        })
+        setTimeout(() => setToast(null), 5000) // Show for 5 seconds for updates
+      }
       
       setDataTableData(tableData)
     } catch (error) {
