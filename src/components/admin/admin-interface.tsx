@@ -222,15 +222,16 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const getScoreColor = (score: number, maxScore: number = 5) => {
     if (score === 0) return 'bg-muted text-muted-foreground'
     
-    // For individual domain scores (1-5 scale)
+    // For individual domain scores (1-5 scale) - one-to-one mapping
     if (maxScore === 5) {
-      if (score >= 4) return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-      if (score >= 3) return 'bg-green-500/20 text-green-400 border border-green-500/30'
-      if (score >= 2) return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-      return 'bg-red-500/20 text-red-400 border border-red-500/30'
+      if (score === 5) return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+      if (score === 4) return 'bg-green-500/20 text-green-400 border border-green-500/30'
+      if (score === 3) return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+      if (score === 2) return 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+      if (score === 1) return 'bg-red-500/20 text-red-400 border border-red-500/30'
     }
     
-    // For total scores (higher scale)
+    // For total scores (higher scale) - percentage based
     const percentage = (score / maxScore) * 100
     if (percentage >= 80) return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
     if (percentage >= 60) return 'bg-green-500/20 text-green-400 border border-green-500/30'
@@ -1291,7 +1292,10 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                             Grader
                           </th>
                           <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[120px]">
-                            Note
+                            Note ID
+                          </th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[200px]">
+                            Note Description
                           </th>
                           {Object.keys(dataTableData[0] || {})
                             .filter(key => !['Grader Email', 'Grader ID', 'Note ID', 'Note Description', 'Total Score', 'Comments', 'Created At'].includes(key))
@@ -1329,15 +1333,19 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                                 <div className="truncate max-w-[180px]" title={row['Grader Email']}>
                                   {row['Grader Email']}
                                 </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {row['Note Description']}
-                                </div>
                               </td>
                               
-                              {/* Note Info */}
+                              {/* Note ID */}
                               <td className="px-3 py-3 text-center">
                                 <div className="text-xs font-mono text-muted-foreground">
                                   {row['Note ID'].substring(0, 8)}...
+                                </div>
+                              </td>
+                              
+                              {/* Note Description */}
+                              <td className="px-3 py-3 text-sm text-foreground">
+                                <div className="truncate max-w-[180px]" title={row['Note Description']}>
+                                  {row['Note Description']}
                                 </div>
                               </td>
                               
@@ -1411,19 +1419,23 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                 <div className="flex items-center justify-center space-x-4 text-sm text-muted-foreground">
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center text-xs font-semibold">5</div>
-                    <span>Excellent (4-5)</span>
+                    <span>Excellent</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full flex items-center justify-center text-xs font-semibold">3</div>
-                    <span>Good (3-4)</span>
+                    <div className="w-4 h-4 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full flex items-center justify-center text-xs font-semibold">4</div>
+                    <span>Very Good</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full flex items-center justify-center text-xs font-semibold">2</div>
-                    <span>Fair (2-3)</span>
+                    <div className="w-4 h-4 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full flex items-center justify-center text-xs font-semibold">3</div>
+                    <span>Good</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-full flex items-center justify-center text-xs font-semibold">2</div>
+                    <span>Fair</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full flex items-center justify-center text-xs font-semibold">1</div>
-                    <span>Poor (1-2)</span>
+                    <span>Poor</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 bg-muted text-muted-foreground rounded-full flex items-center justify-center text-xs font-semibold">-</div>
@@ -1518,12 +1530,12 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                             </td>
                             <td className="px-2 py-3 text-center">
                               <div className="flex items-center justify-center space-x-2">
-                                <div className="w-16 bg-slate-200 rounded-full h-2">
-                                  <div
-                                    className="bg-emerald-400 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${user.completionRate}%` }}
-                                  />
-                                </div>
+                    <div className="w-16 bg-muted rounded-full h-2">
+                      <div
+                        className="bg-emerald-500/20 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${user.completionRate}%` }}
+                      />
+                    </div>
                                 <span className="text-xs font-medium text-muted-foreground min-w-[35px]">
                                   {Math.round(user.completionRate)}%
                                 </span>
@@ -1533,14 +1545,14 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                               const completion = user.noteCompletions[note.id]
                               return (
                                 <td key={note.id} className="px-2 py-3 text-center">
-                                  <div
-                                    className={`w-6 h-6 mx-auto rounded-full flex items-center justify-center text-xs font-medium transition-all duration-200 ${
-                                      completion?.completed && !completion?.partiallyCompleted
-                                        ? 'bg-emerald-400 text-white shadow-sm shadow-emerald-400/20'
-                                        : completion?.partiallyCompleted
-                                        ? 'bg-amber-400 text-white shadow-sm shadow-amber-400/20'
-                                        : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
-                                    }`}
+                    <div
+                      className={`w-6 h-6 mx-auto rounded-full flex items-center justify-center text-xs font-medium transition-all duration-200 ${
+                        completion?.completed && !completion?.partiallyCompleted
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : completion?.partiallyCompleted
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
                                     title={
                                       completion?.completed && !completion?.partiallyCompleted
                                         ? `Completed: ${note.description}`
@@ -1567,18 +1579,18 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
 
                 {/* Legend */}
                 <div className="flex items-center justify-center space-x-6 text-sm text-muted-foreground">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-emerald-400 rounded-full flex items-center justify-center text-white text-xs">✓</div>
-                    <span>Completed</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center text-white text-xs">◐</div>
-                    <span>In Progress</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-slate-200 rounded-full flex items-center justify-center text-slate-500 text-xs">○</div>
-                    <span>Not Started</span>
-                  </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center text-xs">✓</div>
+                      <span>Completed</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full flex items-center justify-center text-xs">◐</div>
+                      <span>In Progress</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-muted text-muted-foreground rounded-full flex items-center justify-center text-xs">○</div>
+                      <span>Not Started</span>
+                    </div>
                 </div>
               </div>
             )}
