@@ -267,21 +267,53 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         return
       }
 
-      // Fetch users data for emails
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('id, email, first_name, last_name')
+      // Try to fetch auth users data for emails (grader_id references auth.users)
+      let usersMap = new Map()
+      let usersData = []
       
-      if (usersError) {
-        console.error('Users error:', usersError)
-        alert(`Error fetching users: ${usersError.message}`)
-        return
+      try {
+        const { data: authUsers, error: authUsersError } = await supabase.auth.admin.listUsers()
+        
+        if (authUsersError) {
+          console.log('Auth users not accessible, trying custom users table')
+          // Fallback to custom users table if admin access fails
+          const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('id, email, first_name, last_name')
+          
+          if (usersError) {
+            console.error('Users error:', usersError)
+            alert(`Error fetching users: ${usersError.message}`)
+            return
+          }
+          
+          usersData = users || []
+          usersMap = new Map(users?.map(user => [user.id, user]) || [])
+        } else {
+          usersData = authUsers?.users || []
+          usersMap = new Map(authUsers?.users?.map(user => [user.id, { email: user.email }]) || [])
+        }
+      } catch (error) {
+        console.log('Auth admin access failed, trying custom users table')
+        // Fallback to custom users table
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('id, email, first_name, last_name')
+        
+        if (usersError) {
+          console.error('Users error:', usersError)
+          alert(`Error fetching users: ${usersError.message}`)
+          return
+        }
+        
+        usersData = users || []
+        usersMap = new Map(users?.map(user => [user.id, user]) || [])
       }
 
       console.log('Grades data:', grades)
       console.log('Notes data:', notes)
       console.log('Domains data:', domains)
-      console.log('Users data:', users)
+      console.log('Users data:', usersData)
       
       // Debug: Check if we have any grades with grader_id
       if (grades && grades.length > 0) {
@@ -297,7 +329,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       // Create lookup maps
       const notesMap = new Map(notes?.map(note => [note.id, note]) || [])
       const domainsMap = new Map(domains?.map(domain => [domain.id, domain]) || [])
-      const usersMap = new Map(users?.map(user => [user.id, user]) || [])
+      // usersMap already created above
 
       // Get ordered domain names for consistent column ordering
       const orderedDomains = domains?.map(domain => domain.name) || []
