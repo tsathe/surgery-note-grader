@@ -16,11 +16,14 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Trash2 } from "lucide-react"
 import { useRef } from "react"
 
 interface GradingInterfaceProps {
   user: any
   onExit?: () => void
+  onEvaluationDeleted?: () => void
 }
 
 // Dummy notes are imported from '@/lib/dummy'
@@ -113,7 +116,7 @@ const DUMMY_DOMAINS: RubricDomain[] = [
   },
 ]
 
-export default function GradingInterface({ user, onExit }: GradingInterfaceProps) {
+export default function GradingInterface({ user, onExit, onEvaluationDeleted }: GradingInterfaceProps) {
   const [notes, setNotes] = useState<SurgeryNote[]>([])
   const [selectedNote, setSelectedNote] = useState<SurgeryNote | null>(null)
   const [domains, setDomains] = useState<RubricDomain[]>([])
@@ -124,6 +127,9 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
   const [openDomainId, setOpenDomainId] = useState<string | null>(null)
   const [saveState, setSaveState] = useState<"idle"|"saving"|"saved">("idle")
   const [isClient, setIsClient] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [hasExistingGrade, setHasExistingGrade] = useState(false)
   const saveTimerRef = useRef<number | null>(null)
 
   const totalDomains = domains.length
@@ -162,6 +168,7 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
       const initial = preferredId ? finalNotes.find((n: any) => n.id === preferredId) || finalNotes[0] || null : finalNotes[0] || null
       setSelectedNote(initial)
       initializeScores(finalDomains)
+      setHasExistingGrade(false) // Reset when switching notes
       if (initial && user && typeof window !== 'undefined') {
         await prefillExistingGrade(initial.id, user.id)
       }
@@ -199,12 +206,15 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
         console.log('📊 Extracted scores:', ds)
         setScores(ds)
         setFeedback(((data as any).feedback ?? '') as string)
+        setHasExistingGrade(true)
         console.log('✅ Prefilled scores and feedback successfully')
         return
       } else if (error) {
         console.error('❌ Error fetching grade:', error)
+        setHasExistingGrade(false)
       } else {
         console.log('ℹ️ No existing grade found for this note')
+        setHasExistingGrade(false)
       }
     } catch (err) {
       console.error('❌ Exception in prefillExistingGrade:', err)
@@ -412,6 +422,68 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
     }
   }
 
+  const handleDeleteEvaluation = async () => {
+    if (!selectedNote || !user) return
+    setIsDeleting(true)
+    try {
+      console.log('🗑️ Deleting evaluation for note:', selectedNote.id, 'user:', user.id)
+      
+      // Delete the grade from database
+      const { error } = await supabase
+        .from('grades')
+        .delete()
+        .eq('note_id', selectedNote.id)
+        .eq('grader_id', user.id)
+      
+      if (error) {
+        console.error('❌ Error deleting grade:', error)
+        throw error
+      }
+      
+      console.log('✅ Grade deleted successfully')
+      
+      // Clear local state
+      setScores({})
+      setFeedback('')
+      setHasExistingGrade(false)
+      
+      // Clear localStorage cache for this note
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(`sng_last_grade_${selectedNote.id}`)
+        localStorage.removeItem(`sng_partial_scores_${selectedNote.id}`)
+        
+        // Remove from completed IDs
+        try {
+          const completedIds = JSON.parse(localStorage.getItem('sng_completed_ids') || '[]')
+          const filtered = completedIds.filter((id: string) => id !== selectedNote.id)
+          localStorage.setItem('sng_completed_ids', JSON.stringify(filtered))
+          
+          // Remove from in-progress IDs
+          const inProgressIds = JSON.parse(localStorage.getItem('sng_inprogress_ids') || '[]')
+          const filteredInProgress = inProgressIds.filter((id: string) => id !== selectedNote.id)
+          localStorage.setItem('sng_inprogress_ids', JSON.stringify(filteredInProgress))
+        } catch {}
+      }
+      
+      setShowDeleteDialog(false)
+      
+      // Show success feedback
+      setSaveState("saved")
+      setTimeout(() => setSaveState("idle"), 2000)
+      
+      // Notify parent component about the deletion
+      onEvaluationDeleted?.()
+      
+    } catch (error) {
+      console.error('❌ Delete evaluation error:', error)
+      if (typeof window !== 'undefined') {
+        alert('Failed to delete evaluation. Please check your connection and try again.')
+      }
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
@@ -536,8 +608,58 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
               <div className={`flex flex-col gap-4 ${openDomainId ? 'mt-6' : 'mt-8 flex-1 justify-center'} transition-all duration-300`}>
                 {/* Feedback Section */}
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium">Additional Comments</Label>
-                                  <Textarea
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Additional Comments</Label>
+                    {hasExistingGrade && (
+                      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Delete
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                          <DialogHeader>
+                            <DialogTitle>Delete Evaluation</DialogTitle>
+                            <DialogDescription>
+                              Are you sure you want to delete your evaluation for this surgery note? This action cannot be undone.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowDeleteDialog(false)}
+                              disabled={isDeleting}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={handleDeleteEvaluation}
+                              disabled={isDeleting}
+                            >
+                              {isDeleting ? (
+                                <>
+                                  <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                                  Deleting...
+                                </>
+                              ) : (
+                                <>
+                                  <Trash2 className="h-3 w-3 mr-2" />
+                                  Delete Evaluation
+                                </>
+                              )}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                  <Textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   rows={openDomainId ? 3 : 4}

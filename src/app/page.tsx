@@ -18,6 +18,7 @@ export default function Home() {
   const [hasAccess, setHasAccess] = useState(false)
   const [activeInterface, setActiveInterface] = useState<'inbox' | 'grading' | 'admin'>('inbox')
   const [inboxKey, setInboxKey] = useState(0)
+  const [inboxAutoRefresh, setInboxAutoRefresh] = useState(0)
 
   useEffect(() => {
     // Check for existing session
@@ -151,7 +152,13 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="text-base font-semibold">Surgery Note Grader</div>
-            <Tabs value={activeInterface} onValueChange={(v: any) => setActiveInterface(v)}>
+            <Tabs value={activeInterface} onValueChange={(v: any) => {
+              setActiveInterface(v)
+              if (v === 'inbox') {
+                // Trigger auto-refresh when switching to inbox
+                setInboxAutoRefresh(prev => prev + 1)
+              }
+            }}>
               <TabsList>
                 <TabsTrigger value="inbox">My Assignments</TabsTrigger>
                 {isAdmin && <TabsTrigger value="admin">Admin Dashboard</TabsTrigger>}
@@ -167,13 +174,26 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      {activeInterface === "inbox" && <Inbox key={inboxKey} user={user} onOpen={() => setActiveInterface('grading')} />}
+      {activeInterface === "inbox" && (
+        <Inbox 
+          key={inboxKey} 
+          user={user} 
+          onOpen={() => setActiveInterface('grading')} 
+          autoRefresh={inboxAutoRefresh > 0}
+        />
+      )}
       {activeInterface === "grading" && (
         <GradingInterface
           user={user}
           onExit={() => {
             setActiveInterface('inbox')
             setInboxKey((k) => k + 1)
+            setInboxAutoRefresh(prev => prev + 1)
+          }}
+          onEvaluationDeleted={() => {
+            // Refresh inbox to reflect deleted evaluation
+            setInboxKey((k) => k + 1)
+            setInboxAutoRefresh(prev => prev + 1)
           }}
         />
       )}

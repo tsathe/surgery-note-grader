@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -9,8 +9,152 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Inbox as InboxIcon, Loader2, CheckCircle2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react"
+import { Inbox as InboxIcon, Loader2, CheckCircle2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Edit3 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// SwipeableRow component for touch gestures
+interface SwipeableRowProps {
+  children: React.ReactNode
+  onEdit: () => void
+  isRevealed: boolean
+  onRevealChange: (revealed: boolean) => void
+  className?: string
+}
+
+function SwipeableRow({ children, onEdit, isRevealed, onRevealChange, className }: SwipeableRowProps) {
+  const [startX, setStartX] = useState<number | null>(null)
+  const [currentX, setCurrentX] = useState<number | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [translateX, setTranslateX] = useState(0)
+  
+  const SWIPE_THRESHOLD = 60 // pixels to trigger reveal
+  const MAX_TRANSLATE = 80 // maximum translation distance
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX)
+    setCurrentX(e.touches[0].clientX)
+    setIsDragging(true)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!startX || !isDragging) return
+    
+    const currentTouch = e.touches[0].clientX
+    setCurrentX(currentTouch)
+    
+    const deltaX = startX - currentTouch // Swipe left is positive
+    const clampedDelta = Math.max(0, Math.min(deltaX, MAX_TRANSLATE))
+    setTranslateX(clampedDelta)
+  }
+
+  const handleTouchEnd = () => {
+    if (!startX || !currentX) return
+    
+    const deltaX = startX - currentX
+    const shouldReveal = deltaX > SWIPE_THRESHOLD
+    
+    if (shouldReveal && !isRevealed) {
+      onRevealChange(true)
+      setTranslateX(MAX_TRANSLATE)
+    } else if (!shouldReveal && isRevealed) {
+      onRevealChange(false)
+      setTranslateX(0)
+    } else if (isRevealed) {
+      setTranslateX(MAX_TRANSLATE)
+    } else {
+      setTranslateX(0)
+    }
+    
+    setStartX(null)
+    setCurrentX(null)
+    setIsDragging(false)
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setStartX(e.clientX)
+    setCurrentX(e.clientX)
+    setIsDragging(true)
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!startX || !isDragging) return
+    
+    setCurrentX(e.clientX)
+    const deltaX = startX - e.clientX
+    const clampedDelta = Math.max(0, Math.min(deltaX, MAX_TRANSLATE))
+    setTranslateX(clampedDelta)
+  }
+
+  const handleMouseUp = () => {
+    if (!startX || !currentX) return
+    
+    const deltaX = startX - currentX
+    const shouldReveal = deltaX > SWIPE_THRESHOLD
+    
+    if (shouldReveal && !isRevealed) {
+      onRevealChange(true)
+      setTranslateX(MAX_TRANSLATE)
+    } else if (!shouldReveal && isRevealed) {
+      onRevealChange(false)
+      setTranslateX(0)
+    } else if (isRevealed) {
+      setTranslateX(MAX_TRANSLATE)
+    } else {
+      setTranslateX(0)
+    }
+    
+    setStartX(null)
+    setCurrentX(null)
+    setIsDragging(false)
+  }
+
+  // Reset translation when isRevealed changes externally
+  React.useEffect(() => {
+    setTranslateX(isRevealed ? MAX_TRANSLATE : 0)
+  }, [isRevealed])
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* Edit button background */}
+      <div 
+        className={cn(
+          "absolute right-0 top-0 h-full flex items-center justify-center bg-primary transition-all duration-200",
+          isRevealed ? "w-20 opacity-100" : "w-0 opacity-0"
+        )}
+      >
+        <Button
+          onClick={onEdit}
+          variant="ghost"
+          size="sm"
+          className="h-full w-full text-primary-foreground hover:bg-primary-foreground/10 rounded-none"
+        >
+          <Edit3 className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      {/* Main content */}
+      <div
+        className={cn(
+          "transition-transform duration-200 select-none",
+          className
+        )}
+        style={{ 
+          transform: `translateX(-${translateX}px)`,
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={isDragging ? handleMouseMove : undefined}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
 
 type Assignment = {
   id: string
@@ -24,9 +168,10 @@ type Assignment = {
 interface InboxProps {
   user: any
   onOpen?: (noteId: string) => void
+  autoRefresh?: boolean // New prop to trigger refresh
 }
 
-export default function Inbox({ user, onOpen }: InboxProps) {
+export default function Inbox({ user, onOpen, autoRefresh }: InboxProps) {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [query, setQuery] = useState("")
   // Removed phase filter - all cases are Phase 1
@@ -37,11 +182,33 @@ export default function Inbox({ user, onOpen }: InboxProps) {
   const [inProgressIds, setInProgressIds] = useState<Set<string>>(new Set())
   const [domainCount, setDomainCount] = useState<number>(5)
   const [isClient, setIsClient] = useState(false)
+  const [swipedItemId, setSwipedItemId] = useState<string | null>(null)
 
   useEffect(() => {
     setIsClient(true)
     load()
   }, [])
+
+  // Auto-refresh when component becomes active
+  useEffect(() => {
+    if (autoRefresh) {
+      console.log('📡 Auto-refreshing inbox...')
+      load(false) // Don't clear cache on auto-refresh
+      setSwipedItemId(null) // Close any open swipe actions
+    }
+  }, [autoRefresh])
+
+  // Close swipe actions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setSwipedItemId(null)
+    }
+    
+    if (swipedItemId) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [swipedItemId])
 
   async function load(clearCache = false) {
     setIsLoading(true)
@@ -393,10 +560,16 @@ export default function Inbox({ user, onOpen }: InboxProps) {
               </TableRow>
             ) : (
               filtered.map((a) => (
-                <TableRow
+                <SwipeableRow
                   key={a.id}
-                  className="group hover:bg-accent/40 transition-all duration-150 border-border/30"
+                  onEdit={() => openNote(a.id)}
+                  isRevealed={swipedItemId === a.id}
+                  onRevealChange={(revealed) => {
+                    // Close other swiped items when opening a new one
+                    setSwipedItemId(revealed ? a.id : null)
+                  }}
                 >
+                  <TableRow className="group hover:bg-accent/40 transition-all duration-150 border-border/30">
                   <TableCell className="py-4 pl-6">
                     <div className="space-y-1">
                       <div className="font-medium text-foreground/90 group-hover:text-foreground transition-colors">
@@ -434,7 +607,8 @@ export default function Inbox({ user, onOpen }: InboxProps) {
                       Open
                     </Button>
                   </TableCell>
-                </TableRow>
+                  </TableRow>
+                </SwipeableRow>
               ))
             )}
           </TableBody>
