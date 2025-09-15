@@ -220,13 +220,23 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
 
   // Helper function to get score color based on value
   const getScoreColor = (score: number, maxScore: number = 5) => {
-    if (score === 0) return 'bg-slate-100 text-slate-500'
+    if (score === 0) return 'bg-muted text-muted-foreground'
+    
+    // For individual domain scores (1-5 scale)
+    if (maxScore === 5) {
+      if (score >= 4) return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+      if (score >= 3) return 'bg-green-500/20 text-green-400 border border-green-500/30'
+      if (score >= 2) return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+      return 'bg-red-500/20 text-red-400 border border-red-500/30'
+    }
+    
+    // For total scores (higher scale)
     const percentage = (score / maxScore) * 100
-    if (percentage >= 80) return 'bg-emerald-100 text-emerald-700'
-    if (percentage >= 60) return 'bg-green-100 text-green-700'
-    if (percentage >= 40) return 'bg-yellow-100 text-yellow-700'
-    if (percentage >= 20) return 'bg-orange-100 text-orange-700'
-    return 'bg-red-100 text-red-700'
+    if (percentage >= 80) return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+    if (percentage >= 60) return 'bg-green-500/20 text-green-400 border border-green-500/30'
+    if (percentage >= 40) return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+    if (percentage >= 20) return 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+    return 'bg-red-500/20 text-red-400 border border-red-500/30'
   }
 
   // Helper function to toggle comment expansion
@@ -1275,9 +1285,9 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                 <div className="bg-card border shadow-sm overflow-hidden sm:rounded-lg">
                   <div className="overflow-x-auto">
                     <table className="min-w-full">
-                      <thead className="bg-muted/50">
+                      <thead className="bg-muted/20">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky left-0 bg-muted/50 z-10 min-w-[200px]">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky left-0 bg-muted/20 z-10 min-w-[200px]">
                             Grader
                           </th>
                           <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[120px]">
@@ -1313,7 +1323,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                           const commentPreview = comment.length > 50 ? comment.substring(0, 50) + '...' : comment
                           
                           return (
-                            <tr key={index} className="hover:bg-muted/30 transition-colors">
+                            <tr key={index} className="hover:bg-muted/10 transition-colors">
                               {/* Grader Email - Sticky */}
                               <td className="px-4 py-3 text-sm font-medium text-foreground sticky left-0 bg-background z-10">
                                 <div className="truncate max-w-[180px]" title={row['Grader Email']}>
@@ -1391,23 +1401,23 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                 {/* Legend for Score Colors */}
                 <div className="flex items-center justify-center space-x-4 text-sm text-muted-foreground">
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-xs font-semibold">5</div>
+                    <div className="w-4 h-4 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center text-xs font-semibold">5</div>
                     <span>Excellent (4-5)</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-semibold">3</div>
+                    <div className="w-4 h-4 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full flex items-center justify-center text-xs font-semibold">3</div>
                     <span>Good (3-4)</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center text-xs font-semibold">2</div>
+                    <div className="w-4 h-4 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full flex items-center justify-center text-xs font-semibold">2</div>
                     <span>Fair (2-3)</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-orange-100 text-orange-700 rounded-full flex items-center justify-center text-xs font-semibold">1</div>
+                    <div className="w-4 h-4 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full flex items-center justify-center text-xs font-semibold">1</div>
                     <span>Poor (1-2)</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center text-xs font-semibold">-</div>
+                    <div className="w-4 h-4 bg-muted text-muted-foreground rounded-full flex items-center justify-center text-xs font-semibold">-</div>
                     <span>Not scored</span>
                   </div>
                 </div>
