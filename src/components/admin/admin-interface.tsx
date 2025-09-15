@@ -259,6 +259,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       const { data: domains, error: domainsError } = await supabase
         .from('rubric_domains')
         .select('id, name')
+        .order('order', { ascending: true })
       
       if (domainsError) {
         console.error('Domains error:', domainsError)
@@ -266,9 +267,21 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         return
       }
 
+      // Fetch users data for emails
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, email')
+      
+      if (usersError) {
+        console.error('Users error:', usersError)
+        alert(`Error fetching users: ${usersError.message}`)
+        return
+      }
+
       console.log('Grades data:', grades)
       console.log('Notes data:', notes)
       console.log('Domains data:', domains)
+      console.log('Users data:', users)
 
       if (!grades || grades.length === 0) {
         alert('No grading data found to export.')
@@ -278,28 +291,34 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       // Create lookup maps
       const notesMap = new Map(notes?.map(note => [note.id, note]) || [])
       const domainsMap = new Map(domains?.map(domain => [domain.id, domain]) || [])
+      const usersMap = new Map(users?.map(user => [user.id, user]) || [])
+
+      // Get ordered domain names for consistent column ordering
+      const orderedDomains = domains?.map(domain => domain.name) || []
 
       // Convert to CSV format
       const csvData = grades.map(grade => {
         const note = notesMap.get(grade.note_id)
+        const user = usersMap.get(grade.grader_id)
         const domainScores = grade.domain_scores || {}
         
-        // Create a row with all the data
+        // Create a row with all the data in the requested order
         const row = {
-          'Note Description': note?.description || '',
+          'Grader Email': user?.email || '',
           'Note ID': grade.note_id,
-          'Grader ID': grade.grader_id,
-          'Total Score': grade.total_score,
-          'Feedback': grade.feedback || '',
-          'Date': new Date(grade.created_at).toLocaleDateString(),
+          'Note Description': note?.description || '',
         }
 
-        // Add individual domain scores
-        Object.entries(domainScores).forEach(([domainId, score]) => {
-          const domain = domainsMap.get(domainId)
-          const domainName = domain?.name || `Domain ${domainId}`
-          row[domainName] = score
+        // Add individual domain scores in order
+        orderedDomains.forEach(domainName => {
+          const domainId = domains?.find(d => d.name === domainName)?.id
+          const score = domainId ? domainScores[domainId] : ''
+          row[domainName] = score || ''
         })
+
+        // Add total score and comments at the end
+        row['Total Score'] = grade.total_score
+        row['Comments'] = grade.feedback || ''
 
         return row
       })
