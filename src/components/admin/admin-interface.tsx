@@ -1364,19 +1364,28 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                               </td>
                               
                               {/* Comments - Expandable */}
-                              <td className="px-3 py-3 text-sm text-foreground">
+                              <td className="px-3 py-3 text-sm text-foreground max-w-[300px]">
                                 {comment ? (
                                   <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground">
+                                    <div className={`text-xs text-muted-foreground break-words ${
+                                      isCommentExpanded ? 'whitespace-pre-wrap' : 'line-clamp-3'
+                                    }`}>
                                       {isCommentExpanded ? comment : commentPreview}
                                     </div>
                                     {comment.length > 50 && (
-                                      <button
-                                        onClick={() => toggleCommentExpansion(gradeId)}
-                                        className="text-xs text-primary hover:text-primary/80 font-medium"
-                                      >
-                                        {isCommentExpanded ? 'Show less' : 'Show more'}
-                                      </button>
+                                      <div className="flex items-center justify-between">
+                                        <button
+                                          onClick={() => toggleCommentExpansion(gradeId)}
+                                          className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                                        >
+                                          {isCommentExpanded ? 'Show less' : 'Show more'}
+                                        </button>
+                                        {isCommentExpanded && (
+                                          <span className="text-xs text-muted-foreground">
+                                            {comment.length} chars
+                                          </span>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                 ) : (
