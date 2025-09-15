@@ -608,57 +608,7 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
               <div className={`flex flex-col gap-4 ${openDomainId ? 'mt-6' : 'mt-8 flex-1 justify-center'} transition-all duration-300`}>
                 {/* Feedback Section */}
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Additional Comments</Label>
-                    {hasExistingGrade && (
-                      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Delete
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                          <DialogHeader>
-                            <DialogTitle>Delete Evaluation</DialogTitle>
-                            <DialogDescription>
-                              Are you sure you want to delete your evaluation for this surgery note? This action cannot be undone.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <DialogFooter>
-                            <Button
-                              variant="outline"
-                              onClick={() => setShowDeleteDialog(false)}
-                              disabled={isDeleting}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              onClick={handleDeleteEvaluation}
-                              disabled={isDeleting}
-                            >
-                              {isDeleting ? (
-                                <>
-                                  <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                                  Deleting...
-                                </>
-                              ) : (
-                                <>
-                                  <Trash2 className="h-3 w-3 mr-2" />
-                                  Delete Evaluation
-                                </>
-                              )}
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    )}
-                  </div>
+                  <Label className="text-sm font-medium">Additional Comments</Label>
                   <Textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
@@ -707,6 +657,58 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
                       </Button>
                     </div>
                   </div>
+                  
+                  {/* Delete Evaluation Button - subtle placement below submit */}
+                  {hasExistingGrade && (
+                    <div className="flex justify-center pt-2">
+                      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-3 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1.5" />
+                            Delete Evaluation
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                          <DialogHeader>
+                            <DialogTitle>Delete Evaluation</DialogTitle>
+                            <DialogDescription>
+                              Are you sure you want to delete your evaluation for this surgery note? This action cannot be undone.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowDeleteDialog(false)}
+                              disabled={isDeleting}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={handleDeleteEvaluation}
+                              disabled={isDeleting}
+                            >
+                              {isDeleting ? (
+                                <>
+                                  <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                                  Deleting...
+                                </>
+                              ) : (
+                                <>
+                                  <Trash2 className="h-3 w-3 mr-2" />
+                                  Delete Evaluation
+                                </>
+                              )}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  )}
                 </div>
               </div>
               </div>
