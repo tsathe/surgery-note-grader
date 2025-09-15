@@ -36,7 +36,7 @@ export default function Inbox({ user, onOpen, autoRefresh }: InboxProps) {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [isLoading, setIsLoading] = useState(true)
   const [inProgressIds, setInProgressIds] = useState<Set<string>>(new Set())
-  const [domainCount, setDomainCount] = useState<number>(5)
+  const [domainCount, setDomainCount] = useState<number>(0)
   const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
@@ -116,9 +116,14 @@ export default function Inbox({ user, onOpen, autoRefresh }: InboxProps) {
       }))
 
       setAssignments(mapped)
-      // domain count (for progress pips)
+      // domain count (for progress pips) - must match grading interface
       const { data: domains, error: dErr } = await supabase.from("rubric_domains").select("id")
-      if (!dErr && domains) setDomainCount(domains.length || 5)
+      if (!dErr && domains) {
+        setDomainCount(domains.length)
+        console.log(`📊 Inbox domain count synchronized: ${domains.length} domains`)
+      } else {
+        console.warn('⚠️ Could not fetch domain count, progress indicators may be incorrect')
+      }
       // restore in-progress from localStorage
       if (typeof window !== 'undefined') {
         try {
@@ -202,11 +207,13 @@ export default function Inbox({ user, onOpen, autoRefresh }: InboxProps) {
   }, [assignments, inProgressIds])
 
   function renderPips(id: string) {
-    if (!isClient) {
+    const actualDomainCount = Math.max(1, domainCount) // Ensure we have at least 1 domain
+    
+    if (!isClient || actualDomainCount === 0) {
       return (
-        <div className="flex items-center gap-1" title="No progress">
+        <div className="flex items-center gap-1" title="Loading progress...">
           {Array.from({ length: 5 }, (_, i) => (
-            <span key={i} className="h-1.5 w-6 rounded-full bg-muted" />
+            <span key={i} className="h-1.5 w-6 rounded-full bg-muted animate-pulse" />
           ))}
         </div>
       )
@@ -214,11 +221,11 @@ export default function Inbox({ user, onOpen, autoRefresh }: InboxProps) {
     
     try {
       const raw = localStorage.getItem(`sng_partial_scores_${id}`)
-      const filled = raw ? Math.min(domainCount, Object.keys(JSON.parse(raw)).length) : 0
-      const total = Math.max(1, domainCount)
-      const show = Array.from({ length: 5 }, (_, i) => i < Math.round((filled / total) * 5))
+      const filled = raw ? Math.min(actualDomainCount, Object.keys(JSON.parse(raw)).length) : 0
+      // Always show exactly the same number of pips as domains
+      const show = Array.from({ length: actualDomainCount }, (_, i) => i < filled)
       return (
-        <div className="flex items-center gap-1" title={filled ? `${filled}/${total} domains scored` : "No progress"}>
+        <div className="flex items-center gap-1" title={filled ? `${filled}/${actualDomainCount} domains scored` : "No progress"}>
           {show.map((on, i) => (
             <span key={i} className={`h-1.5 w-6 rounded-full ${on ? 'bg-primary' : 'bg-muted'}`} />
           ))}
@@ -227,7 +234,7 @@ export default function Inbox({ user, onOpen, autoRefresh }: InboxProps) {
     } catch {
       return (
         <div className="flex items-center gap-1" title="No progress">
-          {Array.from({ length: 5 }, (_, i) => (
+          {Array.from({ length: actualDomainCount }, (_, i) => (
             <span key={i} className="h-1.5 w-6 rounded-full bg-muted" />
           ))}
         </div>

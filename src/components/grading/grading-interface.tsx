@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Trash2 } from "lucide-react"
 import { useRef } from "react"
+import { useToast } from "@/hooks/use-toast"
 
 interface GradingInterfaceProps {
   user: any
@@ -131,6 +132,7 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [hasExistingGrade, setHasExistingGrade] = useState(false)
   const saveTimerRef = useRef<number | null>(null)
+  const { toast } = useToast()
 
   const totalDomains = domains.length
   const scoredCount = Object.keys(scores).length
@@ -413,10 +415,11 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
       onExit?.()
     } catch (error) {
       console.error('❌ Submit error:', error)
-      // Show user-friendly error message
-      if (typeof window !== 'undefined') {
-        alert('Failed to save grade. Please check your connection and try again.')
-      }
+      toast({
+        title: "Error Saving Grade",
+        description: "Failed to save your evaluation. Please check your connection and try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -468,17 +471,22 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
       setShowDeleteDialog(false)
       
       // Show success feedback
-      setSaveState("saved")
-      setTimeout(() => setSaveState("idle"), 2000)
+      toast({
+        title: "Evaluation Deleted",
+        description: "Your evaluation has been successfully deleted.",
+        variant: "success",
+      })
       
       // Notify parent component about the deletion
       onEvaluationDeleted?.()
       
     } catch (error) {
       console.error('❌ Delete evaluation error:', error)
-      if (typeof window !== 'undefined') {
-        alert('Failed to delete evaluation. Please check your connection and try again.')
-      }
+      toast({
+        title: "Error Deleting Evaluation",
+        description: "Failed to delete your evaluation. Please check your connection and try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsDeleting(false)
     }
@@ -495,11 +503,11 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/20">
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 py-4 md:py-6">
-        <div className="h-full grid grid-cols-1 lg:grid-cols-[1fr_1px_1fr] gap-0 min-h-0">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-[2fr_1px_3fr] gap-0 min-h-0">
           {/* Left Pane: Note viewer */}
           <div className="flex flex-col min-h-0 relative">
             <div className="absolute inset-0 bg-gradient-to-b from-background/50 to-transparent pointer-events-none z-10" />
-            <div className="px-4 py-4 w-full mx-auto max-w-[780px] flex-1 flex flex-col min-h-0">
+            <div className="px-4 py-4 w-full mx-auto flex-1 flex flex-col min-h-0">
             {selectedNote ? (
               <div className="flex-1 min-h-0 flex flex-col">
                 <div className="mb-4 flex items-center justify-between">
@@ -525,7 +533,7 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
                 </div>
                 
                 <div className="flex-1 rounded-lg bg-muted/20 border border-border/30 min-h-0">
-                  <ScrollArea className="h-[80vh]">
+                  <ScrollArea className="h-full">
                     <div className="p-6">
                       <pre className="whitespace-pre-wrap text-[15px] leading-7 font-mono text-foreground/90 selection:bg-primary/20">
                         {selectedNote.note_text}
@@ -551,7 +559,7 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
           {/* Right Pane: Grading */}
           <div className="flex flex-col min-h-0 relative">
             <div className="absolute inset-0 bg-gradient-to-b from-muted/10 to-transparent pointer-events-none z-10" />
-            <div className="px-4 py-4 w-full mx-auto max-w-[720px] flex-1 flex flex-col min-h-0">
+            <div className="px-4 py-4 w-full mx-auto flex-1 flex flex-col min-h-0">
             
             <div className="mb-6 space-y-3">
               <div className="flex items-center justify-between">
@@ -658,17 +666,17 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
                     </div>
                   </div>
                   
-                  {/* Delete Evaluation Button - subtle placement below submit */}
+                  {/* Delete Evaluation Button - subtle placement below submit, right-aligned */}
                   {hasExistingGrade && (
-                    <div className="flex justify-center pt-2">
+                    <div className="flex justify-end pt-3 pr-2">
                       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                         <DialogTrigger asChild>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 px-3 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            className="h-7 px-2 text-xs text-muted-foreground/60 hover:text-destructive hover:bg-destructive/5 transition-colors opacity-70 hover:opacity-100"
                           >
-                            <Trash2 className="h-3 w-3 mr-1.5" />
+                            <Trash2 className="h-3 w-3 mr-1" />
                             Delete Evaluation
                           </Button>
                         </DialogTrigger>

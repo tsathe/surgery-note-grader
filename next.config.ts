@@ -4,12 +4,34 @@ const nextConfig: NextConfig = {
   eslint: {
     // Only run ESLint on these directories during production builds
     dirs: ['src'],
-    // Allow production builds to successfully complete even if there are ESLint errors
-    ignoreDuringBuilds: true,
+    // Don't ignore ESLint errors in production - fix them instead
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    // Allow production builds to successfully complete even if there are type errors
-    ignoreBuildErrors: true,
+    // Don't ignore TypeScript errors in production - fix them instead
+    ignoreBuildErrors: false,
+  },
+  // Add security headers for production
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+    ];
   },
 };
 
