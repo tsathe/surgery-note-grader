@@ -60,6 +60,13 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
     loadData()
   }, [])
 
+  // Auto-load data table when switching to data tab
+  useEffect(() => {
+    if (activeTab === 'data') {
+      loadDataTable()
+    }
+  }, [activeTab])
+
   const loadData = async () => {
     try {
       const [notesData, domainsData, usersData] = await Promise.all([
@@ -1045,13 +1052,18 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         {activeTab === 'data' && (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Grading Data</h2>
+              <div>
+                <h2 className="text-xl font-semibold">Grading Data</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Data refreshes automatically when you visit this tab
+                </p>
+              </div>
               <button
                 onClick={loadDataTable}
                 disabled={isLoadingData}
-                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center space-x-2 disabled:opacity-50"
+                className="bg-secondary text-secondary-foreground px-3 py-2 rounded-md hover:bg-secondary/80 flex items-center space-x-2 disabled:opacity-50 text-sm"
               >
-                {isLoadingData ? 'Loading...' : 'Refresh Data'}
+                {isLoadingData ? 'Loading...' : 'Refresh'}
               </button>
             </div>
 
