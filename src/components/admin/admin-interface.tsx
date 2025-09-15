@@ -231,41 +231,61 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
 
   const exportData = async () => {
     try {
+      console.log('Starting export...')
       const { data: grades, error } = await supabase
         .from('grades')
         .select(`
           *,
-          surgery_notes (title, content),
+          surgery_notes (description, note_text),
           rubric_domains (name)
         `)
       
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error:', error)
+        alert(`Error fetching data: ${error.message}`)
+        return
+      }
+
+      console.log('Grades data:', grades)
+
+      if (!grades || grades.length === 0) {
+        alert('No grading data found to export.')
+        return
+      }
 
       // Convert to CSV format
-      const csvData = grades?.map(grade => ({
-        'Note Title': grade.surgery_notes?.title || '',
+      const csvData = grades.map(grade => ({
+        'Note Description': grade.surgery_notes?.description || '',
+        'Note ID': grade.note_id,
         'Grader ID': grade.grader_id,
         'Total Score': grade.total_score,
         'Feedback': grade.feedback || '',
         'Date': new Date(grade.created_at).toLocaleDateString(),
         ...grade.domain_scores
-      })) || []
+      }))
+
+      console.log('CSV data:', csvData)
 
       // Create and download CSV
       const csv = [
         Object.keys(csvData[0] || {}).join(','),
-        ...csvData.map(row => Object.values(row).map(v => `"${v}"`).join(','))
+        ...csvData.map(row => Object.values(row).map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
       ].join('\n')
 
-      const blob = new Blob([csv], { type: 'text/csv' })
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = `surgery-note-grades-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
       a.click()
+      document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
+      
+      alert(`Successfully exported ${grades.length} grading records!`)
     } catch (error) {
       console.error('Error exporting data:', error)
+      alert(`Error exporting data: ${error}`)
     }
   }
 
