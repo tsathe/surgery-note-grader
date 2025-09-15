@@ -501,12 +501,11 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="h-screen flex flex-col bg-background">
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 py-4 md:py-6">
         <div className="h-full grid grid-cols-1 lg:grid-cols-[2fr_1px_3fr] gap-0 min-h-0">
           {/* Left Pane: Note viewer */}
-          <div className="flex flex-col min-h-0 relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-background/50 to-transparent pointer-events-none z-10" />
+          <div className="flex flex-col min-h-0">
             <div className="px-4 py-4 w-full mx-auto flex-1 flex flex-col min-h-0">
             {selectedNote ? (
               <div className="flex-1 min-h-0 flex flex-col">
@@ -554,11 +553,10 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
         </div>
 
         {/* Vertical divider */}
-        <Separator orientation="vertical" className="hidden lg:block bg-gradient-to-b from-transparent via-border to-transparent" />
+        <Separator orientation="vertical" className="hidden lg:block" />
 
           {/* Right Pane: Grading */}
-          <div className="flex flex-col min-h-0 relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-muted/10 to-transparent pointer-events-none z-10" />
+          <div className="flex flex-col min-h-0">
             <div className="px-4 py-4 w-full mx-auto flex-1 flex flex-col min-h-0">
             
             <div className="mb-6 space-y-3">
@@ -665,59 +663,59 @@ export default function GradingInterface({ user, onExit, onEvaluationDeleted }: 
                       </Button>
                     </div>
                   </div>
-                  
-                  {/* Delete Evaluation Button - subtle placement below submit, right-aligned */}
-                  {hasExistingGrade && (
-                    <div className="flex justify-end pt-3 pr-2">
-                      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-muted-foreground/60 hover:text-destructive hover:bg-destructive/5 transition-colors opacity-70 hover:opacity-100"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Delete Evaluation
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                          <DialogHeader>
-                            <DialogTitle>Delete Evaluation</DialogTitle>
-                            <DialogDescription>
-                              Are you sure you want to delete your evaluation for this surgery note? This action cannot be undone.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <DialogFooter>
-                            <Button
-                              variant="outline"
-                              onClick={() => setShowDeleteDialog(false)}
-                              disabled={isDeleting}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              onClick={handleDeleteEvaluation}
-                              disabled={isDeleting}
-                            >
-                              {isDeleting ? (
-                                <>
-                                  <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                                  Deleting...
-                                </>
-                              ) : (
-                                <>
-                                  <Trash2 className="h-3 w-3 mr-2" />
-                                  Delete Evaluation
-                                </>
-                              )}
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  )}
                 </div>
+                
+                {/* Delete Evaluation Button - positioned below the action box, right-aligned */}
+                {hasExistingGrade && (
+                  <div className="flex justify-end mt-4">
+                    <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-muted-foreground/60 hover:text-destructive hover:bg-destructive/5 transition-colors opacity-70 hover:opacity-100"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Delete Evaluation
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Delete Evaluation</DialogTitle>
+                          <DialogDescription>
+                            Are you sure you want to delete your evaluation for this surgery note? This action cannot be undone.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowDeleteDialog(false)}
+                            disabled={isDeleting}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={handleDeleteEvaluation}
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? (
+                              <>
+                                <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                                Deleting...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="h-3 w-3 mr-2" />
+                                Delete Evaluation
+                              </>
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                )}
               </div>
               </div>
             </div>
