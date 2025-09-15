@@ -29,6 +29,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const [completionData, setCompletionData] = useState<any[]>([])
   const [isLoadingCompletion, setIsLoadingCompletion] = useState(false)
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set())
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   
   // User management state
@@ -71,9 +72,20 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   }, [activeTab])
 
   // Add a refresh mechanism that can be called manually
-  const refreshDataTable = () => {
+  const refreshDataTable = async () => {
     console.log('Manually refreshing data table...')
-    loadDataTable()
+    const previousCount = dataTableData.length
+    await loadDataTable()
+    
+    // Show toast if data changed
+    if (dataTableData.length !== previousCount) {
+      setToast({ message: `Data refreshed! Found ${dataTableData.length} grades.`, type: 'success' })
+    } else {
+      setToast({ message: 'Data refreshed successfully.', type: 'info' })
+    }
+    
+    // Auto-hide toast after 3 seconds
+    setTimeout(() => setToast(null), 3000)
   }
 
   // Auto-load completion data when switching to completion tab
@@ -124,11 +136,28 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       console.log('📊 Fetched grades:', grades?.length || 0, 'records')
       console.log('📊 Latest grade:', grades?.[0])
       
-      // Check for recent updates (last 5 minutes)
+      // Check for recent updates (last 5 minutes) - check both updated_at and created_at
       const recentGrades = grades?.filter(grade => {
-        const gradeTime = new Date(grade.updated_at || grade.created_at)
+        const updatedTime = grade.updated_at ? new Date(grade.updated_at) : null
+        const createdTime = new Date(grade.created_at)
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
-        return gradeTime > fiveMinutesAgo
+        
+        // Check if either updated_at or created_at is recent
+        const isRecent = (updatedTime && updatedTime > fiveMinutesAgo) || 
+                        (!updatedTime && createdTime > fiveMinutesAgo)
+        
+        if (isRecent) {
+          console.log('📊 Recent grade found:', {
+            id: grade.id,
+            note_id: grade.note_id,
+            grader_id: grade.grader_id,
+            updated_at: grade.updated_at,
+            created_at: grade.created_at,
+            total_score: grade.total_score
+          })
+        }
+        
+        return isRecent
       }) || []
       console.log('📊 Recent grades (last 5 min):', recentGrades.length, recentGrades)
 
@@ -227,6 +256,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         row['Comments'] = grade.feedback || ''
         row['Created At'] = new Date(grade.created_at).toLocaleDateString()
         row['Updated At'] = grade.updated_at ? new Date(grade.updated_at).toLocaleDateString() : 'Never'
+        row['Last Modified'] = grade.updated_at ? new Date(grade.updated_at).toLocaleDateString() : new Date(grade.created_at).toLocaleDateString()
 
         return row
       }) || []
@@ -1342,7 +1372,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                             Created
                           </th>
                           <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[100px]">
-                            Updated
+                            Last Modified
                           </th>
                         </tr>
                       </thead>
@@ -1449,11 +1479,11 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                                 </div>
                               </td>
                               
-                              {/* Updated Date */}
+                              {/* Last Modified Date */}
                               <td className="px-3 py-3 text-center h-16">
                                 <div className="h-full flex items-center justify-center">
-                                  <div className={`text-xs ${row['Updated At'] === 'Never' ? 'text-muted-foreground' : 'text-foreground font-medium'}`}>
-                                    {row['Updated At']}
+                                  <div className="text-xs text-foreground font-medium">
+                                    {row['Last Modified']}
                                   </div>
                                 </div>
                               </td>
@@ -1892,6 +1922,27 @@ email,first_name,last_name,role{'\n'}john.doe@example.com,John,Doe,Resident{'\n'
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right-full">
+          <div className={`px-4 py-3 rounded-lg shadow-lg border ${
+            toast.type === 'success' ? 'bg-green-500 text-white border-green-600' :
+            toast.type === 'error' ? 'bg-red-500 text-white border-red-600' :
+            'bg-blue-500 text-white border-blue-600'
+          }`}>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">{toast.message}</span>
+              <button
+                onClick={() => setToast(null)}
+                className="text-white/80 hover:text-white text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
           </div>
         </div>
       )}
