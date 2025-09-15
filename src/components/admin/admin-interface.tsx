@@ -123,6 +123,14 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       
       console.log('📊 Fetched grades:', grades?.length || 0, 'records')
       console.log('📊 Latest grade:', grades?.[0])
+      
+      // Check for recent updates (last 5 minutes)
+      const recentGrades = grades?.filter(grade => {
+        const gradeTime = new Date(grade.updated_at || grade.created_at)
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+        return gradeTime > fiveMinutesAgo
+      }) || []
+      console.log('📊 Recent grades (last 5 min):', recentGrades.length, recentGrades)
 
       // Fetch surgery notes data
       const { data: notes, error: notesError } = await supabase
@@ -218,6 +226,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         row['Total Score'] = grade.total_score
         row['Comments'] = grade.feedback || ''
         row['Created At'] = new Date(grade.created_at).toLocaleDateString()
+        row['Updated At'] = grade.updated_at ? new Date(grade.updated_at).toLocaleDateString() : 'Never'
 
         return row
       }) || []
@@ -1330,7 +1339,10 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                             Comments
                           </th>
                           <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[100px]">
-                            Date
+                            Created
+                          </th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[100px]">
+                            Updated
                           </th>
                         </tr>
                       </thead>
@@ -1433,6 +1445,15 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                                 <div className="h-full flex items-center justify-center">
                                   <div className="text-xs text-muted-foreground">
                                     {row['Created At']}
+                                  </div>
+                                </div>
+                              </td>
+                              
+                              {/* Updated Date */}
+                              <td className="px-3 py-3 text-center h-16">
+                                <div className="h-full flex items-center justify-center">
+                                  <div className={`text-xs ${row['Updated At'] === 'Never' ? 'text-muted-foreground' : 'text-foreground font-medium'}`}>
+                                    {row['Updated At']}
                                   </div>
                                 </div>
                               </td>
