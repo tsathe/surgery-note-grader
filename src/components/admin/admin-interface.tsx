@@ -7,8 +7,6 @@ import { Plus, Edit, Trash2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import BulkUploadModal from './bulk-upload/bulk-upload-modal'
-import AssignmentManager from './assignment-manager/assignment-manager'
-import SimpleInterRater from './simple-inter-rater'
 
 interface AdminInterfaceProps {
   user: any
@@ -18,7 +16,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const [notes, setNotes] = useState<SurgeryNote[]>([])
   const [domains, setDomains] = useState<RubricDomain[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'notes' | 'assignments' | 'inter-rater' | 'rubric' | 'users' | 'analytics' | 'export'>('notes')
+  const [activeTab, setActiveTab] = useState<'notes' | 'rubric' | 'users' | 'data' | 'export'>('notes')
   const [showDomainForm, setShowDomainForm] = useState(false)
   const [showImportRubric, setShowImportRubric] = useState(false)
   const [importRubricText, setImportRubricText] = useState('')
@@ -26,6 +24,8 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const [editingNote, setEditingNote] = useState<SurgeryNote | null>(null)
   const [editingDomain, setEditingDomain] = useState<RubricDomain | null>(null)
   const [showNoteModal, setShowNoteModal] = useState(false)
+  const [dataTableData, setDataTableData] = useState<any[]>([])
+  const [isLoadingData, setIsLoadingData] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   
   // User management state
@@ -79,6 +79,123 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       console.error('Error loading data:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadDataTable = async () => {
+    setIsLoadingData(true)
+    try {
+      // Fetch grades data
+      const { data: grades, error: gradesError } = await supabase
+        .from('grades')
+        .select('*')
+      
+      if (gradesError) {
+        console.error('Grades error:', gradesError)
+        return
+      }
+
+      // Fetch surgery notes data
+      const { data: notes, error: notesError } = await supabase
+        .from('surgery_notes')
+        .select('id, description, note_text')
+      
+      if (notesError) {
+        console.error('Notes error:', notesError)
+        return
+      }
+
+      // Fetch rubric domains data
+      const { data: domains, error: domainsError } = await supabase
+        .from('rubric_domains')
+        .select('id, name')
+        .order('order', { ascending: true })
+      
+      if (domainsError) {
+        console.error('Domains error:', domainsError)
+        return
+      }
+
+      // Try to fetch auth users data for emails (grader_id references auth.users)
+      let usersMap = new Map()
+      
+      try {
+        const { data: authUsers, error: authUsersError } = await supabase.auth.admin.listUsers()
+        
+        if (authUsersError) {
+          console.log('Auth users not accessible, trying custom users table')
+          // Fallback to custom users table if admin access fails
+          const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('id, email, first_name, last_name')
+          
+          if (usersError) {
+            console.error('Users error:', usersError)
+            return
+          }
+          
+          usersMap = new Map(users?.map(user => [user.id, user]) || [])
+        } else {
+          usersMap = new Map(authUsers?.users?.map(user => [user.id, { email: user.email }]) || [])
+        }
+      } catch (error) {
+        console.log('Auth admin access failed, trying custom users table')
+        // Fallback to custom users table
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('id, email, first_name, last_name')
+        
+        if (usersError) {
+          console.error('Users error:', usersError)
+          return
+        }
+        
+        usersMap = new Map(users?.map(user => [user.id, user]) || [])
+      }
+
+      // Create lookup maps
+      const notesMap = new Map(notes?.map(note => [note.id, note]) || [])
+      const domainsMap = new Map(domains?.map(domain => [domain.id, domain]) || [])
+
+      // Get ordered domain names for consistent column ordering
+      const orderedDomains = domains?.map(domain => domain.name) || []
+
+      // Convert to table format
+      const tableData = grades?.map(grade => {
+        const note = notesMap.get(grade.note_id)
+        const user = usersMap.get(grade.grader_id)
+        const domainScores = grade.domain_scores || {}
+        
+        // Create a row with all the data
+        const row = {
+          'Grader ID': grade.grader_id,
+          'Grader Email': user?.email || `User ${grade.grader_id}`,
+          'Note ID': grade.note_id,
+          'Note Description': note?.description || '',
+        }
+
+        // Add individual domain scores in order
+        orderedDomains.forEach(domainName => {
+          const domainId = domains?.find(d => d.name === domainName)?.id
+          const score = domainId ? domainScores[domainId] : ''
+          // Clean domain name for display (remove commas and quotes)
+          const cleanDomainName = domainName.replace(/[",]/g, ' ').trim()
+          row[cleanDomainName] = score || ''
+        })
+
+        // Add total score and comments at the end
+        row['Total Score'] = grade.total_score
+        row['Comments'] = grade.feedback || ''
+        row['Created At'] = new Date(grade.created_at).toLocaleDateString()
+
+        return row
+      }) || []
+
+      setDataTableData(tableData)
+    } catch (error) {
+      console.error('Error loading data table:', error)
+    } finally {
+      setIsLoadingData(false)
     }
   }
 
@@ -592,11 +709,9 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
           <nav className="-mb-px flex space-x-8">
             {[
               { id: 'notes', label: 'Surgery Notes' },
-              { id: 'assignments', label: 'Assignments' },
-              { id: 'inter-rater', label: 'Inter-rater Reliability' },
               { id: 'rubric', label: 'Rubric Domains' },
               { id: 'users', label: 'User Access' },
-              { id: 'analytics', label: 'Analytics' },
+              { id: 'data', label: 'Grading Data' },
               { id: 'export', label: 'Export Data' }
             ].map((tab) => (
               <button
@@ -730,15 +845,6 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
           </div>
         )}
 
-        {/* Assignments Tab */}
-        {activeTab === 'assignments' && (
-          <AssignmentManager onAssignmentUpdate={loadData} />
-        )}
-
-        {/* Inter-rater Reliability Tab */}
-        {activeTab === 'inter-rater' && (
-          <SimpleInterRater onUpdate={loadData} />
-        )}
 
         {/* Rubric Tab */}
         {activeTab === 'rubric' && (
@@ -928,6 +1034,65 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                 ))}
               </ul>
             </div>
+          </div>
+        )}
+
+        {/* Data Tab */}
+        {activeTab === 'data' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">Grading Data</h2>
+              <button
+                onClick={loadDataTable}
+                disabled={isLoadingData}
+                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center space-x-2 disabled:opacity-50"
+              >
+                {isLoadingData ? 'Loading...' : 'Refresh Data'}
+              </button>
+            </div>
+
+            {isLoadingData ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="text-muted-foreground">Loading grading data...</div>
+              </div>
+            ) : dataTableData.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No grading data found. Start grading some notes to see data here.
+              </div>
+            ) : (
+              <div className="bg-card border shadow-sm overflow-hidden sm:rounded-md">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        {Object.keys(dataTableData[0] || {}).map((key) => (
+                          <th
+                            key={key}
+                            className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                          >
+                            {key}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-background divide-y divide-border">
+                      {dataTableData.map((row, index) => (
+                        <tr key={index} className="hover:bg-muted/30">
+                          {Object.values(row).map((value, cellIndex) => (
+                            <td
+                              key={cellIndex}
+                              className="px-6 py-4 whitespace-nowrap text-sm text-foreground"
+                            >
+                              {String(value)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
