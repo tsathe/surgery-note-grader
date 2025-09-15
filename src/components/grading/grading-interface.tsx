@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { SurgeryNote, RubricDomain } from "@/lib/types"
-import { DUMMY_NOTES } from "@/lib/dummy"
 import RubricDomainComponent from "./rubric-domain"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -152,9 +151,9 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
       let finalNotes = notesData || []
       const finalDomains = domainsData || []
 
-      // Fallback notes if none available in DB (for demo only)
-      if (notesError || finalNotes.length === 0) {
-        finalNotes = DUMMY_NOTES
+      // No fallback to dummy data - only show actual database content
+      if (notesError) {
+        console.error('❌ Error loading notes from database:', notesError)
       }
 
       setNotes(finalNotes)
@@ -168,17 +167,12 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
       }
       // start with all domains collapsed
     } catch (error) {
-      // Total fallback to dummy
-      setNotes(DUMMY_NOTES)
+      // No fallback to dummy data - show empty state
+      console.error('❌ Exception loading data:', error)
+      setNotes([])
       setDomains([])
-      const first = DUMMY_NOTES[0]
-      setSelectedNote(first)
+      setSelectedNote(null)
       initializeScores([])
-      // local-only prefill if available
-      if (first && user && typeof window !== 'undefined') {
-        await prefillExistingGrade(first.id, user.id)
-      }
-      // start with all domains collapsed
     } finally {
       setIsLoading(false)
     }
@@ -253,7 +247,7 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
           const inProgressKey = 'sng_inprogress_ids'
           const inProgressRaw = localStorage.getItem(inProgressKey) || '[]'
           const inProgressIds = JSON.parse(inProgressRaw)
-          if (!inProgressIds.includes(selectedNote.id)) {
+          if (selectedNote && !inProgressIds.includes(selectedNote.id)) {
             inProgressIds.push(selectedNote.id)
             localStorage.setItem(inProgressKey, JSON.stringify(inProgressIds))
           }

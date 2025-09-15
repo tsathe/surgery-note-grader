@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { DUMMY_NOTES } from "@/lib/dummy"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -10,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Inbox as InboxIcon, Loader2, CheckCircle2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { Inbox as InboxIcon, Loader2, CheckCircle2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Assignment = {
@@ -44,9 +43,25 @@ export default function Inbox({ user, onOpen }: InboxProps) {
     load()
   }, [])
 
-  async function load() {
+  async function load(clearCache = false) {
     setIsLoading(true)
+    
+    // Clear localStorage cache if requested
+    if (clearCache && typeof window !== 'undefined') {
+      console.log('🔄 Clearing localStorage cache...')
+      localStorage.removeItem('sng_completed_ids')
+      localStorage.removeItem('sng_selected_note_id')
+      // Clear all partial scores and last grades
+      const keys = Object.keys(localStorage)
+      keys.forEach(key => {
+        if (key.startsWith('sng_partial_scores_') || key.startsWith('sng_last_grade_')) {
+          localStorage.removeItem(key)
+        }
+      })
+    }
+    
     try {
+      console.log('📡 Fetching fresh data from Supabase...')
       // Example: join of assignments/grades could be used. For now synthesize from surgery_notes + grades presence
       const { data: notes, error } = await supabase
         .from("surgery_notes")
@@ -58,16 +73,28 @@ export default function Inbox({ user, onOpen }: InboxProps) {
         .select("note_id")
         .eq("grader_id", user.id)
 
+      console.log('📊 Database results:', { notesCount: notes?.length || 0, gradesCount: userGrades?.length || 0, error })
+
       const gradedIds = new Set((userGrades || []).map((g) => g.note_id))
-      // also merge local optimistic completed ids so status updates immediately after submit
-      if (typeof window !== 'undefined') {
+      
+      // Only use localStorage for optimistic updates if not clearing cache
+      if (!clearCache && typeof window !== 'undefined') {
         try {
           const localCompleted = JSON.parse(localStorage.getItem('sng_completed_ids') || '[]') as string[]
           for (const id of localCompleted) gradedIds.add(id)
         } catch {}
       }
 
-      const noteList = error || !notes || notes.length === 0 ? DUMMY_NOTES : notes
+      // Never use dummy data - only show actual database content
+      const noteList = notes || []
+      
+      if (error) {
+        console.error('❌ Database connection error:', error)
+      }
+      
+      if (!notes || notes.length === 0) {
+        console.log('ℹ️ No notes found in database')
+      }
 
       // All cases are Phase 1
       const mapped: Assignment[] = noteList.map((n: any, idx: number) => ({
@@ -318,6 +345,16 @@ export default function Inbox({ user, onOpen }: InboxProps) {
               className="h-9 px-3 bg-card/30 border-border/50"
             >
               {sortOrder === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => load(true)}
+              disabled={isLoading}
+              className="h-9 px-3 bg-card/30 border-border/50 hover:bg-primary/10"
+              title="Refresh data and clear cache"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
