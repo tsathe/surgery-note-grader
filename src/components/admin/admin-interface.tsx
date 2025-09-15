@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { SurgeryNote, RubricDomain } from '@/lib/types'
 import { Plus, Edit, Trash2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import BulkUploadModal from './bulk-upload/bulk-upload-modal'
 import AssignmentManager from './assignment-manager/assignment-manager'
 import SimpleInterRater from './simple-inter-rater'
@@ -18,13 +19,13 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const [domains, setDomains] = useState<RubricDomain[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'notes' | 'assignments' | 'inter-rater' | 'rubric' | 'users' | 'analytics' | 'export'>('notes')
-  const [showNoteForm, setShowNoteForm] = useState(false)
   const [showDomainForm, setShowDomainForm] = useState(false)
   const [showImportRubric, setShowImportRubric] = useState(false)
   const [importRubricText, setImportRubricText] = useState('')
   const [importError, setImportError] = useState<string | null>(null)
   const [editingNote, setEditingNote] = useState<SurgeryNote | null>(null)
   const [editingDomain, setEditingDomain] = useState<RubricDomain | null>(null)
+  const [showNoteModal, setShowNoteModal] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   
   // User management state
@@ -117,7 +118,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         alert('Note created successfully!')
       }
       
-      setShowNoteForm(false)
+      setShowNoteModal(false)
       setEditingNote(null)
       setNoteForm({ description: '', note_text: '' })
       await loadData()
@@ -622,9 +623,9 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                 <BulkUploadModal onUploadComplete={async () => await loadData()} />
                 <button
                   onClick={() => {
-                    setShowNoteForm(true)
                     setEditingNote(null)
                     setNoteForm({ description: '', note_text: '' })
+                    setShowNoteModal(true)
                   }}
                   className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center space-x-2"
                 >
@@ -634,11 +635,14 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
               </div>
             </div>
 
-            {showNoteForm && (
-              <div className="bg-card border p-6 rounded-lg shadow-sm mb-6">
-                <h3 className="text-lg font-medium mb-4">
-                  {editingNote ? 'Edit Note' : 'Add New Note'}
-                </h3>
+            {/* Note Modal */}
+            <Dialog open={showNoteModal} onOpenChange={setShowNoteModal}>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingNote ? 'Edit Note' : 'Add New Note'}
+                  </DialogTitle>
+                </DialogHeader>
                 <form onSubmit={handleNoteSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium">Description</label>
@@ -665,7 +669,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                   <div className="flex justify-end space-x-3">
                     <button
                       type="button"
-                      onClick={() => setShowNoteForm(false)}
+                      onClick={() => setShowNoteModal(false)}
                       className="px-4 py-2 border rounded-md hover:bg-accent"
                     >
                       Cancel
@@ -678,12 +682,14 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                     </button>
                   </div>
                 </form>
-              </div>
-            )}
+              </DialogContent>
+            </Dialog>
 
             <div className="bg-card border shadow-sm overflow-hidden sm:rounded-md">
               <ul className="divide-y">
-                {notes.map((note) => (
+                {notes
+                  .sort((a, b) => a.description.localeCompare(b.description))
+                  .map((note) => (
                   <li key={note.id} className="px-6 py-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -702,8 +708,8 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                               description: note.description,
                               note_text: note.note_text
                             })
-                            setShowNoteForm(true)
-                            console.log('Edit form should now be visible')
+                            setShowNoteModal(true)
+                            console.log('Edit modal should now be visible')
                           }}
                           className="p-2 text-muted-foreground hover:text-foreground"
                         >
