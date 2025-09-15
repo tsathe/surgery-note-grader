@@ -348,7 +348,7 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
       const domain_scores_with_meta: any = { ...scores, _meta: { rubric_version: computeRubricVersion(domains), rubric: domains.map((d) => ({ id: d.id, name: d.name, order: d.order, max_score: d.max_score })) } }
       if (existingId) {
         console.log('🔄 Updating existing grade:', existingId, 'with new scores:', scores, 'total:', totalScore)
-        await supabase
+        const { error: updateError } = await supabase
           .from('grades')
           .update({ 
             domain_scores: domain_scores_with_meta, 
@@ -357,16 +357,26 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
             updated_at: new Date().toISOString()
           })
           .eq('id', existingId)
+        
+        if (updateError) {
+          console.error('❌ Error updating grade:', updateError)
+          throw updateError
+        }
         console.log('✅ Grade updated successfully')
       } else {
         console.log('➕ Creating new grade for note:', selectedNote.id, 'with scores:', scores, 'total:', totalScore)
-        await supabase.from('grades').insert({
+        const { error: insertError } = await supabase.from('grades').insert({
           note_id: selectedNote.id,
           grader_id: user.id,
           domain_scores: domain_scores_with_meta,
           total_score: totalScore,
           feedback: feedback || null,
         })
+        
+        if (insertError) {
+          console.error('❌ Error creating grade:', insertError)
+          throw insertError
+        }
         console.log('✅ New grade created successfully')
       }
       if (typeof window !== 'undefined') {
@@ -398,8 +408,11 @@ export default function GradingInterface({ user, onExit }: GradingInterfaceProps
       // Close grading view after successful submit
       onExit?.()
     } catch (error) {
-      // No-op in dummy mode
-      console.error('Submit error (ignored in dummy mode):', error)
+      console.error('❌ Submit error:', error)
+      // Show user-friendly error message
+      if (typeof window !== 'undefined') {
+        alert('Failed to save grade. Please check your connection and try again.')
+      }
     } finally {
       setIsSubmitting(false)
     }
