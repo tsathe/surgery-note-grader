@@ -270,7 +270,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       // Fetch users data for emails
       const { data: users, error: usersError } = await supabase
         .from('users')
-        .select('id, email')
+        .select('id, email, first_name, last_name')
       
       if (usersError) {
         console.error('Users error:', usersError)
@@ -282,6 +282,12 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       console.log('Notes data:', notes)
       console.log('Domains data:', domains)
       console.log('Users data:', users)
+      
+      // Debug: Check if we have any grades with grader_id
+      if (grades && grades.length > 0) {
+        console.log('Sample grade grader_id:', grades[0].grader_id)
+        console.log('Sample grade feedback:', grades[0].feedback)
+      }
 
       if (!grades || grades.length === 0) {
         alert('No grading data found to export.')
@@ -304,7 +310,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         
         // Create a row with all the data in the requested order
         const row = {
-          'Grader Email': user?.email || '',
+          'Grader Email': user?.email || `User ${grade.grader_id}`,
           'Note ID': grade.note_id,
           'Note Description': note?.description || '',
         }
@@ -313,7 +319,9 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
         orderedDomains.forEach(domainName => {
           const domainId = domains?.find(d => d.name === domainName)?.id
           const score = domainId ? domainScores[domainId] : ''
-          row[domainName] = score || ''
+          // Clean domain name for CSV (remove commas and quotes)
+          const cleanDomainName = domainName.replace(/[",]/g, ' ').trim()
+          row[cleanDomainName] = score || ''
         })
 
         // Add total score and comments at the end
