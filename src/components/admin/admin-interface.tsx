@@ -84,17 +84,37 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
   const handleNoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      console.log('Submitting note:', { editingNote, noteForm })
+      
       if (editingNote) {
-        const { error } = await supabase
+        console.log('Updating note with ID:', editingNote.id)
+        const { data, error } = await supabase
           .from('surgery_notes')
           .update(noteForm)
           .eq('id', editingNote.id)
-        if (error) throw error
+          .select()
+        
+        console.log('Update result:', { data, error })
+        if (error) {
+          console.error('Update error:', error)
+          alert(`Error updating note: ${error.message}`)
+          throw error
+        }
+        alert('Note updated successfully!')
       } else {
-        const { error } = await supabase
+        console.log('Creating new note')
+        const { data, error } = await supabase
           .from('surgery_notes')
           .insert(noteForm)
-        if (error) throw error
+          .select()
+        
+        console.log('Insert result:', { data, error })
+        if (error) {
+          console.error('Insert error:', error)
+          alert(`Error creating note: ${error.message}`)
+          throw error
+        }
+        alert('Note created successfully!')
       }
       
       setShowNoteForm(false)
@@ -103,6 +123,7 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
       await loadData()
     } catch (error) {
       console.error('Error saving note:', error)
+      alert(`Error saving note: ${error}`)
     }
   }
 
@@ -675,12 +696,14 @@ export default function AdminInterface({ user }: AdminInterfaceProps) {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => {
+                            console.log('Edit button clicked for note:', note)
                             setEditingNote(note)
                             setNoteForm({
                               description: note.description,
                               note_text: note.note_text
                             })
                             setShowNoteForm(true)
+                            console.log('Edit form should now be visible')
                           }}
                           className="p-2 text-muted-foreground hover:text-foreground"
                         >
